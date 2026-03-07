@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>SVG to PNG Converter</title>
+</head>
+
+<body>
+    <div id="svg-container">
+        <svg id="logo-svg" viewBox="0 0 100 100" width="512" height="512" fill="none"
+            xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="p-loop-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#ff5555" />
+                    <stop offset="40%" stop-color="#ee0000" />
+                    <stop offset="100%" stop-color="#990000" />
+                </linearGradient>
+                <linearGradient id="p-stem-grad" x1="0%" y1="20%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="#550000" />
+                    <stop offset="40%" stop-color="#aa0000" />
+                    <stop offset="100%" stop-color="#cc0000" />
+                </linearGradient>
+            </defs>
+            <g>
+                <path d="M 30 20 L 46 25 L 46 90 L 30 85 Z" fill="url(#p-stem-grad)" />
+                <path d="M 30 20 L 60 29 C 85 35, 85 67, 60 73 L 30 64 L 30 48 L 60 57 C 68 55, 68 47, 60 45 L 30 36 Z"
+                    fill="url(#p-loop-grad)" stroke="url(#p-loop-grad)" stroke-width="1" stroke-linejoin="round" />
+            </g>
+        </svg>
+    </div>
+    <canvas id="canvas" width="512" height="512"></canvas>
+    <script>
+        window.onload = function () {
+            const svg = document.getElementById('logo-svg');
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            const svgData = new XMLSerializer().serializeToString(svg);
+            const img = new Image();
+            const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+            const url = URL.createObjectURL(svgBlob);
+
+            img.onload = function () {
+                ctx.drawImage(img, 0, 0);
+                URL.revokeObjectURL(url);
+                const pngUrl = canvas.toDataURL('image/png');
+                console.log('PNG_DATA_START' + pngUrl + 'PNG_DATA_END');
+            };
+            img.src = url;
+        };
+    </script>
+</body>
+
+</html>

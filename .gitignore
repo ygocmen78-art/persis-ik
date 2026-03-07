@@ -1,5 +1,3 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
 # dependencies
 /node_modules
 /.pnp
@@ -17,9 +15,6 @@
 /.next/
 /out/
 
-# production
-/build
-
 # misc
 .DS_Store
 *.pem
@@ -29,8 +24,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+error.log
 
-# env files (can opt-in for committing if needed)
+# env files
 .env*
 
 # vercel
@@ -39,3 +35,22 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# electron build output
+/dist/
+
+# database & backups (user data, not source code)
+sqlite.db
+/backups/
+
+# temp/test scripts (not needed in repo)
+check_priorities.sql
+check_salaries.js
+check_salaries_nonzero.js
+db_test_tayfun.js
+fix-db.js
+fix_db.js
+test-db.ts
+test.ts
+test-gemini.mjs
+codes.txt
