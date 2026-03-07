@@ -13,7 +13,7 @@ async function main() {
     }).from(employees).limit(5)
 
     console.log("Employees found:", result.length)
-    result.forEach(emp => {
+    result.forEach((emp: any) => {
         console.log(`ID: ${emp.id}, Name: ${emp.firstName} ${emp.lastName}`)
         console.log(`  Start Date (Raw): ${emp.startDate}`)
         console.log(`  Birth Date (Raw): ${emp.birthDate}`)
