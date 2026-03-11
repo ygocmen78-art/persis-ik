@@ -1,5 +1,4 @@
-; customInit: installer'ın .onInit fonksiyonu başında, herhangi bir kontrol yapılmadan ÖNCE çalışır.
-; Bu, customCheckAppRunning'in derleme sırası sorununu bypass eder.
+; customInit: installer'ın .onInit fonksiyonu başında çalışır.
 !macro customInit
   nsExec::ExecToLog 'taskkill /F /IM "Persis IK.exe" /T'
   nsExec::ExecToLog 'taskkill /F /IM "node.exe" /T'
@@ -11,19 +10,20 @@
   Delete "$LOCALAPPDATA\Programs\Persis IK_old\Uninstall Persis IK.exe"
   Delete "$LOCALAPPDATA\Programs\Persis IK Old\Uninstall Persis IK.exe"
   Delete "$LOCALAPPDATA\Programs\Persis IK_old2\Uninstall Persis IK.exe"
-  ; Start Menu klasorunu olustur (administrator hesabinda eksik olabilir)
+  ; perMachine=true ile kurulmus eski surumu de temizle
+  Delete "$PROGRAMFILES64\Persis IK\Uninstall Persis IK.exe"
+  ; Start Menu klasorunu garantiye al (administrator hesabinda eksik olabilir)
   CreateDirectory "$SMPROGRAMS"
 !macroend
 
-; customUnInit: kaldırıcı (.onInit) için aynı işlemi yapar.
+; customUnInit: kaldiricinin .onInit fonksiyonu icin
 !macro customUnInit
   nsExec::ExecToLog 'taskkill /F /IM "Persis IK.exe" /T'
   nsExec::ExecToLog 'taskkill /F /IM "node.exe" /T'
   Sleep 1500
 !macroend
 
-; customCheckAppRunning: yine de tanımlı kalsın — eğer electron-builder versiyonu
-; bu makroyu derleme sırasından bağımsız olarak destekliyorsa devreye girer.
+; customCheckAppRunning: dialog yerine sessizce kapat
 !macro customCheckAppRunning
   nsExec::ExecToLog 'taskkill /F /IM "Persis IK.exe" /T'
   nsExec::ExecToLog 'taskkill /F /IM "node.exe" /T'
