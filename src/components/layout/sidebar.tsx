@@ -128,6 +128,14 @@ const sidebarItems = [
         color: "text-gray-500",
         bgColor: "bg-gray-500",
     },
+    {
+        title: "Program Hakkında",
+        href: "/about",
+        icon: Briefcase,
+        variant: "ghost",
+        color: "text-violet-500",
+        bgColor: "bg-violet-500",
+    },
 ]
 
 export function Sidebar({ className }: { className?: string }) {
@@ -144,7 +152,7 @@ export function Sidebar({ className }: { className?: string }) {
                         </div>
                         <div>
                             <h2 className="text-lg font-bold tracking-tight text-zinc-900 dark:text-white">
-                                Persis İK v0.1.3
+                                Persis İK
                             </h2>
                             <p className="text-xs text-zinc-500 dark:text-zinc-400">Yönetim Sistemi</p>
                         </div>
@@ -172,7 +180,8 @@ export function Sidebar({ className }: { className?: string }) {
                                                                     item.href === "/isg" ? "bg-yellow-500" :
                                                                         item.href === "/attendance" ? "bg-teal-500" :
                                                                             item.href === "/sgk" ? "bg-sky-500" :
-                                                                                item.href === "/settings" ? "bg-gray-500" : "bg-primary"
+                                                                                item.href === "/settings" ? "bg-gray-500" :
+                                                                    item.href === "/about" ? "bg-violet-500" : "bg-primary"
 
                             return (
                                 <Button

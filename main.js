@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, clipboard, screen } = require('electron');
+const { app, BrowserWindow, dialog, clipboard, screen, ipcMain } = require('electron');
 const log = require('electron-log');
 const { autoUpdater } = require('electron-updater');
 
@@ -441,6 +441,11 @@ app.on('ready', () => {
         if (dialog) dialog.showErrorBox('Başlatma Hatası', error.stack || error.message || error);
         console.error('Startup Error:', error);
     }
+});
+
+// IPC Handlers
+ipcMain.handle('get-app-version', () => {
+    return app.getVersion();
 });
 
 app.on('before-quit', () => {
