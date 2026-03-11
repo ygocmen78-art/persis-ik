@@ -44,7 +44,7 @@ function autoBackup() {
 
         // Klasör yoksa oluştur
         if (!fs.existsSync(backupDir)) {
-            fs.mkdirSync(backupDir);
+            fs.mkdirSync(backupDir, { recursive: true });
         }
 
         const timestamp = new Date().toISOString()
@@ -155,7 +155,8 @@ function createWindow() {
     // Çıkış onay ve yedekleme bildirimi (GÜNCELLEME BLOKLADIĞI İÇİN GEÇİCİ OLARAK KALDIRILDI)
     mainWindow.on('close', (event) => {
         // Otomatik yedekleme her durumda yapılsın
-        autoBackup();
+        const result = autoBackup();
+        log.info('Kapatma: yedek alindi:', result ? result.backupPath : 'BASARISIZ');
         isQuitting = true;
     });
 
@@ -508,6 +509,8 @@ ipcMain.handle('open-backup-folder', () => {
 });
 
 app.on('before-quit', () => {
+    // Guvence yedekleme - close event tetiklenmediyse de calissin
+    try { autoBackup(); } catch(e) { log.error('before-quit backup hatasi:', e); }
     isQuitting = true;
 });
 
