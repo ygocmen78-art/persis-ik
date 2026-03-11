@@ -1,6 +1,6 @@
 {
   "name": "persis-ik",
-  "version": "0.1.13",
+  "version": "0.1.14",
   "description": "Persis IK Desktop Application",
   "private": true,
   "main": "main.js",

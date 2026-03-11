@@ -475,79 +475,142 @@ app.on('will-quit', () => {
 });
 
 // Update Event Listeners
+let updateWindow = null;
+
+function createUpdateWindow() {
+    updateWindow = new BrowserWindow({
+        width: 420,
+        height: 220,
+        frame: false,
+        resizable: false,
+        alwaysOnTop: true,
+        center: true,
+        backgroundColor: '#ffffff',
+        webPreferences: { nodeIntegration: true, contextIsolation: false }
+    });
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,'Segoe UI',sans-serif; }
+  body { background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;padding:32px; }
+  .logo { font-size:20px;font-weight:700;color:#1a1a1a;margin-bottom:6px; }
+  .subtitle { font-size:13px;color:#666;margin-bottom:24px; }
+  .status { font-size:13px;color:#444;margin-bottom:12px;text-align:center; }
+  .bar-bg { width:100%;height:8px;background:#e5e7eb;border-radius:99px;overflow:hidden; }
+  .bar-fill { height:100%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:99px;width:0%;transition:width 0.4s ease; }
+  .info { font-size:11px;color:#999;margin-top:10px; }
+</style>
+</head>
+<body>
+  <div class="logo">Persis İK</div>
+  <div class="subtitle">Güncelleme İndiriliyor</div>
+  <div class="status" id="status">Hazırlanıyor...</div>
+  <div class="bar-bg"><div class="bar-fill" id="bar"></div></div>
+  <div class="info" id="info"></div>
+  <script>
+    const { ipcRenderer } = require('electron');
+    ipcRenderer.on('update-progress', (_, d) => {
+      document.getElementById('bar').style.width = d.percent.toFixed(1) + '%';
+      document.getElementById('status').textContent = 'İndiriliyor... %' + d.percent.toFixed(1);
+      const mb = (d.transferred/1024/1024).toFixed(1);
+      const total = (d.total/1024/1024).toFixed(1);
+      const speed = (d.bytesPerSecond/1024/1024).toFixed(2);
+      document.getElementById('info').textContent = mb + ' MB / ' + total + ' MB • ' + speed + ' MB/s';
+    });
+    ipcRenderer.on('update-done', () => {
+      document.getElementById('bar').style.width = '100%';
+      document.getElementById('status').textContent = 'İndirme tamamlandı!';
+      document.getElementById('info').textContent = 'Kurulum penceresi açılıyor...';
+    });
+  </script>
+</body>
+</html>`;
+    updateWindow.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
+}
+
 autoUpdater.on('checking-for-update', () => {
     log.info('Güncelleme kontrol ediliyor...');
 });
 
 autoUpdater.on('update-available', (info) => {
     log.info('Güncelleme bulundu:', info.version);
+    createUpdateWindow();
 });
 
 autoUpdater.on('update-not-available', (info) => {
     log.info('Güncelleme yok. Mevcut versiyon güncel:', info.version);
 });
 
+autoUpdater.on('download-progress', (progress) => {
+    log.info('İndirme:', progress.percent.toFixed(1) + '%');
+    if (updateWindow && !updateWindow.isDestroyed()) {
+        updateWindow.webContents.send('update-progress', {
+            percent: progress.percent,
+            transferred: progress.transferred,
+            total: progress.total,
+            bytesPerSecond: progress.bytesPerSecond
+        });
+    }
+});
+
 autoUpdater.on('update-downloaded', (info) => {
     log.info('Güncelleme indirildi:', info.version);
-    dialog.showMessageBox({
-        type: 'info',
-        title: 'Güncelleme Hazır',
-        message: `Yeni bir versiyon (${info.version}) indirildi. Uygulamayı şimdi güncelleyip yeniden başlatmak ister misiniz?`,
-        detail: 'Güncelleme başarıyla indirildi.',
-        buttons: ['Evet', 'Daha Sonra']
-    }).then((result) => {
-        if (result.response === 0) {
-            isUpdating = true;
-
-            // İndirilen installer dosyasının tam yolunu al
-            const installerPath = info.downloadedFile;
-            log.info('Installer yolu:', installerPath);
-
-            // Next.js arka plan sürecini kapat
-            if (nextProcess) {
-                try {
-                    if (process.platform === 'win32') {
-                        require('child_process').execSync(`taskkill /pid ${nextProcess.pid} /f /t`);
-                    } else {
-                        process.kill(-nextProcess.pid);
+    if (updateWindow && !updateWindow.isDestroyed()) {
+        updateWindow.webContents.send('update-done');
+    }
+    setTimeout(() => {
+        if (updateWindow && !updateWindow.isDestroyed()) updateWindow.destroy();
+        dialog.showMessageBox({
+            type: 'info',
+            title: 'Güncelleme Hazır',
+            message: `v${info.version} başarıyla indirildi.`,
+            detail: 'Uygulama kapatılarak kurulum başlatılacak.',
+            buttons: ['Kurulumu Başlat', 'Daha Sonra']
+        }).then((result) => {
+            if (result.response === 0) {
+                isUpdating = true;
+                const installerPath = info.downloadedFile;
+                log.info('Installer yolu:', installerPath);
+                if (nextProcess) {
+                    try {
+                        if (process.platform === 'win32') {
+                            require('child_process').execSync(`taskkill /pid ${nextProcess.pid} /f /t`);
+                        } else {
+                            process.kill(-nextProcess.pid);
+                        }
+                    } catch (e) {
+                        log.error('Update oncesi Next.js sonlandirma hatasi:', e);
                     }
-                } catch (e) {
-                    log.error('Update oncesi Next.js sonlandirma hatasi:', e);
+                    nextProcess = null;
                 }
-                nextProcess = null;
+                BrowserWindow.getAllWindows().forEach(win => {
+                    win.removeAllListeners('close');
+                    win.removeAllListeners('closed');
+                    win.destroy();
+                });
+                app.once('quit', () => {
+                    if (installerPath) {
+                        log.info('Uygulama kapandı, installer başlatılıyor...');
+                        const { spawn } = require('child_process');
+                        spawn(installerPath, ['--updated'], {
+                            detached: true,
+                            stdio: 'ignore'
+                        }).unref();
+                    }
+                });
+                app.quit();
             }
-
-            // Tüm pencereleri anında yok et (close() değil destroy() — event tetiklemez)
-            const { BrowserWindow } = require('electron');
-            BrowserWindow.getAllWindows().forEach(win => {
-                win.removeAllListeners('close');
-                win.removeAllListeners('closed');
-                win.destroy();
-            });
-
-            // Uygulama tamamen kapandıktan SONRA installer'ı başlat.
-            // Bu yaklaşım, quitAndInstall()'ın "önce installer başlat sonra app'ı kapat"
-            // race condition hatasını tamamen ortadan kaldırır.
-            app.once('quit', () => {
-                if (installerPath) {
-                    log.info('Uygulama kapandı, installer başlatılıyor...');
-                    const { spawn } = require('child_process');
-                    spawn(installerPath, ['--updated'], {
-                        detached: true,
-                        stdio: 'ignore'
-                    }).unref();
-                }
-            });
-
-            // Şimdi uygulamayı kapat
-            app.quit();
-        }
-    });
+        });
+    }, 1500);
 });
 
 autoUpdater.on('error', (err) => {
     log.error('Güncelleme hatası:', err);
+    if (updateWindow && !updateWindow.isDestroyed()) updateWindow.destroy();
 });
+
 
 app.on('activate', function () {
     if (mainWindow === null) {
