@@ -4,13 +4,26 @@ import { Header } from "@/components/layout/header"
 import { Sidebar } from "@/components/layout/sidebar"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { useEffect, useState } from "react"
+import { CheckCircle2 } from "lucide-react"
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
     const pathname = usePathname()
+    const [showUpdateToast, setShowUpdateToast] = useState(false)
 
-    // Get background color based on current page
+    useEffect(() => {
+        (window as any).__showUpdateToast = () => setShowUpdateToast(true);
+        return () => { delete (window as any).__showUpdateToast; };
+    }, []);
+
+    useEffect(() => {
+        if (showUpdateToast) {
+            const t = setTimeout(() => setShowUpdateToast(false), 5000);
+            return () => clearTimeout(t);
+        }
+    }, [showUpdateToast]);
+
     const getBgColor = () => {
-        // Check exact match first
         if (pathname === "/") return "bg-gradient-to-br from-blue-50/50 to-background dark:from-blue-950/30 dark:to-background"
         if (pathname === "/employees") return "bg-gradient-to-br from-green-50/50 to-background dark:from-green-950/30 dark:to-background"
         if (pathname === "/leave") return "bg-gradient-to-br from-purple-50/50 to-background dark:from-purple-950/30 dark:to-background"
@@ -23,8 +36,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         if (pathname === "/attendance") return "bg-gradient-to-br from-teal-50/50 to-background dark:from-teal-950/30 dark:to-background"
         if (pathname === "/sgk") return "bg-gradient-to-br from-sky-50/50 to-background dark:from-sky-950/30 dark:to-background"
         if (pathname === "/settings") return "bg-gradient-to-br from-gray-50/50 to-background dark:from-gray-950/30 dark:to-background"
-
-        // Check for parent routes (detail pages)
         if (pathname.startsWith("/employees")) return "bg-gradient-to-br from-green-50/50 to-background dark:from-green-950/30 dark:to-background"
         if (pathname.startsWith("/leave")) return "bg-gradient-to-br from-purple-50/50 to-background dark:from-purple-950/30 dark:to-background"
         if (pathname.startsWith("/expenses")) return "bg-gradient-to-br from-orange-50/50 to-background dark:from-orange-950/30 dark:to-background"
@@ -36,7 +47,6 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         if (pathname.startsWith("/attendance")) return "bg-gradient-to-br from-teal-50/50 to-background dark:from-teal-950/30 dark:to-background"
         if (pathname.startsWith("/sgk")) return "bg-gradient-to-br from-sky-50/50 to-background dark:from-sky-950/30 dark:to-background"
         if (pathname.startsWith("/settings")) return "bg-gradient-to-br from-gray-50/50 to-background dark:from-gray-950/30 dark:to-background"
-
         return "bg-background"
     }
 
@@ -54,6 +64,16 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                     {children}
                 </main>
             </div>
+
+            {showUpdateToast && (
+                <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-green-600 text-white px-5 py-3.5 rounded-xl shadow-2xl animate-in slide-in-from-bottom-4 duration-300">
+                    <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
+                    <div>
+                        <p className="font-semibold text-sm">Güncelleme tamamlandı!</p>
+                        <p className="text-xs text-green-100">Program başarıyla güncellendi.</p>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

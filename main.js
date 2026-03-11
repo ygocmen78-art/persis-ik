@@ -136,6 +136,16 @@ function createWindow() {
         if (mainWindow) {
             mainWindow.setIcon(iconPath);
             mainWindow.show();
+            // Guncelleme sonrasi baslatildiysa toast gonder
+            if (process.argv.includes('--updated')) {
+                setTimeout(() => {
+                    if (mainWindow && !mainWindow.isDestroyed()) {
+                        mainWindow.webContents.executeJavaScript(
+                            'if(window.__showUpdateToast) window.__showUpdateToast();'
+                        ).catch(() => {});
+                    }
+                }, 3000);
+            }
         }
     });
 
@@ -524,6 +534,14 @@ function createUpdateWindow() {
       document.getElementById('status').textContent = 'İndirme tamamlandı!';
       document.getElementById('info').textContent = 'Kurulum penceresi açılıyor...';
     });
+    ipcRenderer.on('installing', () => {
+      document.getElementById('bar').style.width = '100%';
+      document.querySelector('.subtitle').textContent = 'Kurulum Yapılıyor';
+      document.getElementById('status').textContent = 'Lütfen bekleyin...';
+      document.getElementById('info').textContent = 'Program güncelleniyor, bu pencere kapanınca kurulum tamamdır.';
+      document.getElementById('bar').style.background = 'linear-gradient(90deg,#059669,#34d399)';
+      document.body.style.background = '#f0fdf4';
+    });
   </script>
 </body>
 </html>`;
@@ -573,34 +591,42 @@ autoUpdater.on('update-downloaded', (info) => {
                 isUpdating = true;
                 const installerPath = info.downloadedFile;
                 log.info('Installer yolu:', installerPath);
-                if (nextProcess) {
-                    try {
-                        if (process.platform === 'win32') {
-                            require('child_process').execSync(`taskkill /pid ${nextProcess.pid} /f /t`);
-                        } else {
-                            process.kill(-nextProcess.pid);
-                        }
-                    } catch (e) {
-                        log.error('Update oncesi Next.js sonlandirma hatasi:', e);
-                    }
-                    nextProcess = null;
+
+                // Progress penceresini "Kuruluyor..." olarak guncelle, kapatma
+                if (updateWindow && !updateWindow.isDestroyed()) {
+                    updateWindow.webContents.send('installing');
                 }
-                BrowserWindow.getAllWindows().forEach(win => {
-                    win.removeAllListeners('close');
-                    win.removeAllListeners('closed');
-                    win.destroy();
-                });
-                app.once('quit', () => {
-                    if (installerPath) {
-                        log.info('Uygulama kapandı, installer başlatılıyor...');
-                        const { spawn } = require('child_process');
-                        spawn(installerPath, ['--updated'], {
-                            detached: true,
-                            stdio: 'ignore'
-                        }).unref();
+
+                setTimeout(() => {
+                    if (nextProcess) {
+                        try {
+                            if (process.platform === 'win32') {
+                                require('child_process').execSync(`taskkill /pid ${nextProcess.pid} /f /t`);
+                            } else {
+                                process.kill(-nextProcess.pid);
+                            }
+                        } catch (e) {
+                            log.error('Update oncesi Next.js sonlandirma hatasi:', e);
+                        }
+                        nextProcess = null;
                     }
-                });
-                app.quit();
+                    BrowserWindow.getAllWindows().forEach(win => {
+                        win.removeAllListeners('close');
+                        win.removeAllListeners('closed');
+                        win.destroy();
+                    });
+                    app.once('quit', () => {
+                        if (installerPath) {
+                            log.info('Uygulama kapandı, installer başlatılıyor...');
+                            const { spawn } = require('child_process');
+                            spawn(installerPath, ['--updated'], {
+                                detached: true,
+                                stdio: 'ignore'
+                            }).unref();
+                        }
+                    });
+                    app.quit();
+                }, 2000);
             }
         });
     }, 1500);
