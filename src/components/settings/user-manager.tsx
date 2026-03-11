@@ -189,7 +189,7 @@ export function UserManager({ initialUsers }: UserManagerProps) {
                     <CheckCircle2 className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0" />
                     <div className="text-sm text-blue-800 dark:text-blue-300">
                         <p className="font-semibold">Biliyor muydunuz?</p>
-                        <p className="mt-1 opacity-90">Program ilk açıldığında otomatik olarak <strong>admin</strong> kullanıcısı ve <strong>123456</strong> şifresini oluşturur. Güvenliğiniz için bu varsayılan şifreyi değiştirmeniz önerilir.</p>
+                        <p className="mt-1 opacity-90">Program ilk açıldığında otomatik olarak <strong>admin</strong> kullanıcısı ve <strong>9685**</strong> şifresini oluşturur. Güvenliğiniz için bu varsayılan şifreyi değiştirmeniz önerilir.</p>
                     </div>
                 </div>
             </CardContent>

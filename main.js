@@ -482,6 +482,31 @@ ipcMain.handle('get-app-version', () => {
     return app.getVersion();
 });
 
+ipcMain.handle('get-backup-info', () => {
+    const userDataPath = app.getPath('userData');
+    const backupDir = path.join(userDataPath, 'backups');
+    let lastBackup = null;
+    let backupCount = 0;
+    if (fs.existsSync(backupDir)) {
+        const files = fs.readdirSync(backupDir)
+            .filter(f => f.startsWith('auto_backup_'))
+            .sort().reverse();
+        backupCount = files.length;
+        if (files.length > 0) {
+            const stat = fs.statSync(path.join(backupDir, files[0]));
+            lastBackup = stat.mtime.toISOString();
+        }
+    }
+    return { backupDir, backupCount, lastBackup };
+});
+
+ipcMain.handle('open-backup-folder', () => {
+    const userDataPath = app.getPath('userData');
+    const backupDir = path.join(userDataPath, 'backups');
+    if (!fs.existsSync(backupDir)) fs.mkdirSync(backupDir, { recursive: true });
+    require('electron').shell.openPath(backupDir);
+});
+
 app.on('before-quit', () => {
     isQuitting = true;
 });

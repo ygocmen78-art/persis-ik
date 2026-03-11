@@ -142,8 +142,8 @@ export function Sidebar({ className }: { className?: string }) {
     const pathname = usePathname()
 
     return (
-        <div className={cn("pb-12 min-h-screen border-r bg-gradient-to-b from-sidebar to-sidebar/95 border-sidebar-border/50 shadow-sm", className)}>
-            <div className="space-y-6 py-6">
+        <div className={cn("flex flex-col h-full border-r bg-gradient-to-b from-sidebar to-sidebar/95 border-sidebar-border/50 shadow-sm overflow-y-auto", className)}>
+            <div className="flex flex-col flex-1 space-y-4 py-6">
                 {/* Header/Logo */}
                 <div className="px-6">
                     <div className="flex items-center gap-3 mb-6">
@@ -212,7 +212,7 @@ export function Sidebar({ className }: { className?: string }) {
 
 
                 {/* Spacer to push logout to bottom if we want, or just below management */}
-                <div className="mt-8 pt-4 border-t border-zinc-200 dark:border-zinc-800">
+                <div className="mt-auto pt-4 border-t border-zinc-200 dark:border-zinc-800 px-3">
                     <Button
                         variant="ghost"
                         onClick={async () => {
@@ -228,7 +228,7 @@ export function Sidebar({ className }: { className?: string }) {
                 </div>
 
                 {/* Developer Signature & Support */}
-                <div className="px-6 pt-4 mt-auto">
+                <div className="px-6 pt-2 pb-4">
                     <div className="text-xs text-zinc-500 dark:text-zinc-400 font-medium flex flex-col gap-1.5" style={{ fontFamily: 'Ubuntu, sans-serif' }}>
                         <p className="border-t border-zinc-200 dark:border-zinc-800 pt-4 font-semibold text-zinc-700 dark:text-zinc-300">Tamamen Ücretsizdir.</p>
                         <p className="text-zinc-600 dark:text-zinc-400 font-bold mt-1">Destek & İletişim:</p>
