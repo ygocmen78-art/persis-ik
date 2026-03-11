@@ -11,6 +11,8 @@
   Delete "$LOCALAPPDATA\Programs\Persis IK_old\Uninstall Persis IK.exe"
   Delete "$LOCALAPPDATA\Programs\Persis IK Old\Uninstall Persis IK.exe"
   Delete "$LOCALAPPDATA\Programs\Persis IK_old2\Uninstall Persis IK.exe"
+  ; Start Menu klasorunu olustur (administrator hesabinda eksik olabilir)
+  CreateDirectory "$SMPROGRAMS"
 !macroend
 
 ; customUnInit: kaldırıcı (.onInit) için aynı işlemi yapar.

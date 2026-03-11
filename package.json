@@ -1,6 +1,6 @@
 {
   "name": "persis-ik",
-  "version": "0.1.19",
+  "version": "0.1.20",
   "description": "Persis IK Desktop Application",
   "private": true,
   "main": "main.js",
@@ -88,7 +88,9 @@
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico",
       "installerHeaderIcon": "build/icon.ico",
-      "include": "build/installer.nsh"
+      "include": "build/installer.nsh",
+      "perMachine": true,
+      "allowElevation": true
     }
   },
   "dependencies": {
