@@ -193,6 +193,19 @@ function createWindow() {
                 }
             };
         }
+        // blob:/data: URL'leri PDF yazdirma icin izin ver
+        if (url.startsWith('blob:') || url.startsWith('data:')) {
+            return {
+                action: 'allow',
+                overrideBrowserWindowOptions: {
+                    width: 900, height: 700,
+                    webPreferences: { nodeIntegration: false, contextIsolation: true }
+                }
+            };
+        }
+        if (url.startsWith('https://') || url.startsWith('http://')) {
+            require('electron').shell.openExternal(url);
+        }
         return { action: 'deny' };
     });
 
@@ -611,10 +624,12 @@ autoUpdater.on('update-downloaded', (info) => {
                         nextProcess = null;
                     }
                     BrowserWindow.getAllWindows().forEach(win => {
+                        if (updateWindow && !updateWindow.isDestroyed() && win.id === updateWindow.id) return;
                         win.removeAllListeners('close');
                         win.removeAllListeners('closed');
                         win.destroy();
                     });
+                    // updateWindow'u kurulum bittikten sonra kapat (app.quit kapatir)
                     app.once('quit', () => {
                         if (installerPath) {
                             log.info('Uygulama kapandı, installer başlatılıyor...');
