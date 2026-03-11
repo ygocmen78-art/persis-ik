@@ -110,13 +110,13 @@ export default function SgkPage() {
         }
 
         // Copy credentials summary to clipboard
-        const credLines = [
-            `Sicil: ${credentials.username}`,
-            `Sistem: ${credentials.systemPassword}`,
-            `Isyeri: ${credentials.workplacePassword}`,
-        ];
+        const credLines: string[] = [];
+        if (credentials.username) credLines.push(`Kullanıcı Adı: ${credentials.username}`);
+        if (credentials.systemPassword) credLines.push(`Sistem Şifresi: ${credentials.systemPassword}`);
+        if (credentials.workplacePassword) credLines.push(`İşyeri Şifresi: ${credentials.workplacePassword}`);
         if (credentials.code) credLines.push(`Kod: ${credentials.code}`);
-        if (credentials.userCode) credLines.push(`Kullanici: ${credentials.userCode}`);
+        if (credentials.userCode) credLines.push(`Kullanıcı Kodu: ${credentials.userCode}`);
+        
         const credText = credLines.join("\n");
 
         try {

@@ -1,6 +1,7 @@
 {
   "name": "persis-ik",
-  "version": "0.1.1",
+  "version": "0.1.11",
+  "description": "Persis IK Desktop Application",
   "private": true,
   "main": "main.js",
   "scripts": {
@@ -9,7 +10,8 @@
     "start": "next start",
     "lint": "eslint",
     "app:dev": "electron .",
-    "app:build": "next build && xcopy /e /i /y public .next\\standalone\\public && xcopy /e /i /y .next\\static .next\\standalone\\.next\\static && electron-builder"
+    "app:build": "next build && xcopy /e /i /y public .next\\standalone\\public && xcopy /e /i /y .next\\static .next\\standalone\\.next\\static && electron-builder",
+    "app:publish": "next build && xcopy /e /i /y public .next\\standalone\\public && xcopy /e /i /y .next\\static .next\\standalone\\.next\\static && electron-builder -p always"
   },
   "build": {
     "appId": "com.persis.ik",
@@ -85,7 +87,8 @@
       "runAfterFinish": true,
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico",
-      "installerHeaderIcon": "build/icon.ico"
+      "installerHeaderIcon": "build/icon.ico",
+      "include": "build/installer.nsh"
     }
   },
   "dependencies": {
@@ -112,6 +115,7 @@
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.45.1",
+    "electron-log": "^5.4.3",
     "electron-updater": "^6.8.3",
     "framer-motion": "^12.29.2",
     "lucide-react": "^0.563.0",

@@ -144,7 +144,7 @@ export function Sidebar({ className }: { className?: string }) {
                         </div>
                         <div>
                             <h2 className="text-lg font-bold tracking-tight text-zinc-900 dark:text-white">
-                                Persis İK v1.0.0
+                                Persis İK v0.1.3
                             </h2>
                             <p className="text-xs text-zinc-500 dark:text-zinc-400">Yönetim Sistemi</p>
                         </div>

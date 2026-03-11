@@ -10,6 +10,7 @@ import { getDocumentTypes } from "@/actions/isg-document-types"
 import { Button } from "@/components/ui/button"
 import { Download, Upload } from "lucide-react"
 import { RestoreButton } from "@/components/settings/restore-button"
+import { BackupFolderButton } from "@/components/settings/backup-folder-button"
 import { UserManager } from "@/components/settings/user-manager"
 import { getAppUsers } from "@/actions/user-actions"
 
@@ -75,6 +76,7 @@ export default async function SettingsPage() {
                             </a>
 
                             <RestoreButton />
+                            <BackupFolderButton />
                         </div>
 
                         <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 p-4 rounded-lg">

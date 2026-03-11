@@ -1,8 +1,13 @@
-const { app, BrowserWindow, clipboard, ipcMain, dialog, shell } = require('electron');
+const { app, BrowserWindow, dialog, clipboard, screen } = require('electron');
+const log = require('electron-log');
 const { autoUpdater } = require('electron-updater');
 
 // Register ID as early as possible for taskbar icon management
-app.setAppUserModelId('com.persis.ik');
+try {
+    app.setAppUserModelId('com.persis.ik');
+} catch (e) {
+    console.error('setAppUserModelId failed:', e);
+}
 
 const path = require('path');
 const fs = require('fs');
@@ -21,6 +26,7 @@ process.on('uncaughtException', (error) => {
 let mainWindow;
 let nextProcess;
 let isQuitting = false;
+let isUpdating = false;
 const isProd = app.isPackaged;
 
 /**
@@ -93,9 +99,18 @@ function createWindow() {
 
     console.log('Using icon path:', iconPath);
 
+    // Get primary display work area to dynamically size the window
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { width: displayWidth, height: displayHeight } = primaryDisplay.workAreaSize;
+    
+    // Set width and height to 90% of the screen, with minimums to prevent it from being too small
+    const winWidth = Math.max(1200, Math.floor(displayWidth * 0.9));
+    const winHeight = Math.max(800, Math.floor(displayHeight * 0.9));
+
     mainWindow = new BrowserWindow({
-        width: 1200,
-        height: 800,
+        width: winWidth,
+        height: winHeight,
+        center: true,
         icon: iconPath,
         webPreferences: {
             nodeIntegration: true,
@@ -127,47 +142,11 @@ function createWindow() {
     // Load the "starting" screen briefly before the server is up
     mainWindow.loadFile(path.join(__dirname, 'loading.html'));
 
-    // Çıkış onay ve yedekleme bildirimi
-    mainWindow.on('close', async (event) => {
-        if (isQuitting) return; // Zaten kapanma sürecindeyse tekrar sorma
-
-        event.preventDefault();
-
-        const confirmResult = await dialog.showMessageBox(mainWindow, {
-            type: 'question',
-            title: 'Persis IK - Çıkış',
-            message: 'Uygulamadan çıkmak istediğinize emin misiniz?',
-            detail: 'Çıkışta veritabanı otomatik olarak yedeklenecektir.',
-            buttons: ['Çık ve Yedekle', 'İptal'],
-            defaultId: 0,
-            cancelId: 1,
-            noLink: true
-        });
-
-        if (confirmResult.response === 1) return; // İptal
-
-        // Yedekleme yap
-        const backupResult = autoBackup();
-
-        if (backupResult) {
-            const backupMsg = await dialog.showMessageBox(mainWindow, {
-                type: 'info',
-                title: 'Yedekleme Tamamlandı ✅',
-                message: 'Veritabanı başarıyla yedeklendi!',
-                detail: `Yedek Dosya:\n${backupResult.backupPath}\n\nYedek Klasörü:\n${backupResult.backupDir}`,
-                buttons: ['Tamam', 'Klasörü Aç'],
-                defaultId: 0,
-                noLink: true
-            });
-
-            if (backupMsg.response === 1) {
-                shell.openPath(backupResult.backupDir);
-            }
-        }
-
-        // Artık kapanabilir
+    // Çıkış onay ve yedekleme bildirimi (GÜNCELLEME BLOKLADIĞI İÇİN GEÇİCİ OLARAK KALDIRILDI)
+    mainWindow.on('close', (event) => {
+        // Otomatik yedekleme her durumda yapılsın
+        autoBackup();
         isQuitting = true;
-        mainWindow.close();
     });
 
     mainWindow.on('closed', function () {
@@ -186,7 +165,8 @@ function createWindow() {
         }
     });
 
-    mainWindow.setMenuBarVisibility(false);
+    // DevTools ve Menü çubuğunu test için görünür yapalım
+    mainWindow.setMenuBarVisibility(true);
 
     // Auto-fill handling for newly opened windows
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -243,10 +223,10 @@ function createWindow() {
                                     if (loc.includes('EBildirgeV2')) {
                                         let fields = document.querySelectorAll('input[type="text"]:not([type="hidden"]), input[type="password"]');
                                         if (fields.length >= 4) {
-                                            setVal(fields[0], uc); setVal(fields[1], fc); setVal(fields[2], s); setVal(fields[3], w);
+                                            setVal(fields[0], uc || u); setVal(fields[1], fc); setVal(fields[2], s); setVal(fields[3], w);
                                         }
                                     } else {
-                                        setVal(document.querySelector('input[name="j_username"]'), uc);
+                                        setVal(document.querySelector('input[name="j_username"]'), u || uc);
                                         setVal(document.querySelector('input[name="isyeri_kodu"]'), fc);
                                         setVal(document.querySelector('input[name="j_password"]'), s);
                                         setVal(document.querySelector('input[name="isyeri_sifresi"]'), w);
@@ -381,7 +361,8 @@ function startNextJsServer() {
 
         nextProcess.on('exit', (code, signal) => {
             console.error(`Next.js process exited with code ${code} and signal ${signal}`);
-            if (code !== 0) {
+            // Uygulama bilerek kapanıyorsa, zorla öldürüldüğü için çıkan bu hatayı yoksay
+            if (code !== 0 && !isQuitting && !isUpdating) {
                 if (dialog) {
                     dialog.showErrorBox('Next.js Başlatılamadı', `Hata Kodu: ${code}\nSinyal: ${signal}\n\nHata Detayı:\n${lastError || "Detay yok"}`);
                 }
@@ -430,24 +411,40 @@ function startNextJsServer() {
 }
 
 app.on('ready', () => {
-    // SECURITY: Force login on every fresh app start by deleting the session cookie
-    const { session } = require('electron');
-    session.defaultSession.cookies.remove('http://localhost:3000', 'persis_session')
-        .then(() => console.log('Session cookie cleared for fresh login'))
-        .catch((error) => console.error('Failed to clear auth cookie on boot:', error));
+    try {
+        autoUpdater.logger = log;
+        autoUpdater.logger.transports.file.level = 'info';
+        log.info('Uygulama hazır, başlatılıyor...');
 
-    createWindow();
-    startNextJsServer();
+        // SECURITY: Force login on every fresh app start by deleting the session cookie
+        const { session } = require('electron');
+        session.defaultSession.cookies.remove('http://localhost:3000', 'persis_session')
+            .then(() => console.log('Session cookie cleared for fresh login'))
+            .catch((error) => console.error('Failed to clear auth cookie on boot:', error));
 
-    // Check for updates
-    autoUpdater.checkForUpdatesAndNotify();
+        createWindow();
+        startNextJsServer();
 
-    const { globalShortcut } = require('electron');
-    globalShortcut.register('F12', () => {
-        if (mainWindow) {
-            mainWindow.webContents.toggleDevTools();
-        }
-    });
+        // Check for updates slightly delayed to ensure window is ready
+        setTimeout(() => {
+            log.info('Güncelleme kontrolü başlatılıyor...');
+            autoUpdater.checkForUpdatesAndNotify().catch(e => log.error('Update check failed:', e));
+        }, 3000);
+
+        const { globalShortcut } = require('electron');
+        globalShortcut.register('F12', () => {
+            if (mainWindow) {
+                mainWindow.webContents.toggleDevTools();
+            }
+        });
+    } catch (error) {
+        if (dialog) dialog.showErrorBox('Başlatma Hatası', error.stack || error.message || error);
+        console.error('Startup Error:', error);
+    }
+});
+
+app.on('before-quit', () => {
+    isQuitting = true;
 });
 
 app.on('window-all-closed', function () {
@@ -459,34 +456,92 @@ app.on('window-all-closed', function () {
 app.on('will-quit', () => {
     // Next.js sürecini öldür (yedekleme artık close event'inde yapılıyor)
     if (nextProcess) {
-        if (process.platform === 'win32') {
-            spawn('taskkill', ['/pid', nextProcess.pid, '/f', '/t']);
-        } else {
-            process.kill(-nextProcess.pid);
+        try {
+            if (process.platform === 'win32') {
+                require('child_process').execSync(`taskkill /pid ${nextProcess.pid} /f /t`);
+            } else {
+                process.kill(-nextProcess.pid);
+            }
+        } catch (e) {
+            console.error('Next.js sonlandirma hatasi:', e);
         }
+        nextProcess = null;
     }
 });
 
 // Update Event Listeners
-autoUpdater.on('update-available', () => {
-    console.log('Güncelleme bulundu.');
+autoUpdater.on('checking-for-update', () => {
+    log.info('Güncelleme kontrol ediliyor...');
+});
+
+autoUpdater.on('update-available', (info) => {
+    log.info('Güncelleme bulundu:', info.version);
+});
+
+autoUpdater.on('update-not-available', (info) => {
+    log.info('Güncelleme yok. Mevcut versiyon güncel:', info.version);
 });
 
 autoUpdater.on('update-downloaded', (info) => {
+    log.info('Güncelleme indirildi:', info.version);
     dialog.showMessageBox({
         type: 'info',
         title: 'Güncelleme Hazır',
         message: `Yeni bir versiyon (${info.version}) indirildi. Uygulamayı şimdi güncelleyip yeniden başlatmak ister misiniz?`,
+        detail: 'Güncelleme başarıyla indirildi.',
         buttons: ['Evet', 'Daha Sonra']
     }).then((result) => {
         if (result.response === 0) {
-            autoUpdater.quitAndInstall();
+            isUpdating = true;
+
+            // İndirilen installer dosyasının tam yolunu al
+            const installerPath = info.downloadedFile;
+            log.info('Installer yolu:', installerPath);
+
+            // Next.js arka plan sürecini kapat
+            if (nextProcess) {
+                try {
+                    if (process.platform === 'win32') {
+                        require('child_process').execSync(`taskkill /pid ${nextProcess.pid} /f /t`);
+                    } else {
+                        process.kill(-nextProcess.pid);
+                    }
+                } catch (e) {
+                    log.error('Update oncesi Next.js sonlandirma hatasi:', e);
+                }
+                nextProcess = null;
+            }
+
+            // Tüm pencereleri anında yok et (close() değil destroy() — event tetiklemez)
+            const { BrowserWindow } = require('electron');
+            BrowserWindow.getAllWindows().forEach(win => {
+                win.removeAllListeners('close');
+                win.removeAllListeners('closed');
+                win.destroy();
+            });
+
+            // Uygulama tamamen kapandıktan SONRA installer'ı başlat.
+            // Bu yaklaşım, quitAndInstall()'ın "önce installer başlat sonra app'ı kapat"
+            // race condition hatasını tamamen ortadan kaldırır.
+            app.once('quit', () => {
+                if (installerPath) {
+                    log.info('Uygulama kapandı, installer başlatılıyor...');
+                    const { spawn } = require('child_process');
+                    spawn(installerPath, ['--updated'], {
+                        detached: true,
+                        stdio: 'ignore'
+                    }).unref();
+                }
+            });
+
+            // Şimdi uygulamayı kapat
+            app.quit();
         }
     });
 });
 
 autoUpdater.on('error', (err) => {
-    console.error('Güncelleme hatası:', err);
+    log.error('Güncelleme hatası:', err);
 });
 
 app.on('activate', function () {

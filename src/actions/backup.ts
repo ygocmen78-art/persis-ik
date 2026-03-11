@@ -3,6 +3,33 @@
 import fs from "fs"
 import path from "path"
 import { revalidatePath } from "next/cache"
+import { exec } from "child_process"
+
+export async function openBackupFolder() {
+    try {
+        const dbDirectory = process.env.USERDATA_PATH || process.cwd();
+        const backupDir = path.join(dbDirectory, 'backups');
+        
+        // Ensure directory exists
+        if (!fs.existsSync(backupDir)) {
+            fs.mkdirSync(backupDir, { recursive: true });
+        }
+        
+        // Use Platform-specific command exactly suited for Windows
+        if (process.platform === 'win32') {
+            exec(`start "" "${backupDir}"`);
+        } else if (process.platform === 'darwin') {
+            exec(`open "${backupDir}"`);
+        } else {
+            exec(`xdg-open "${backupDir}"`);
+        }
+        
+        return { success: true, message: "Yedek klasörü açılıyor..." };
+    } catch (error: any) {
+        console.error("Open folder error:", error);
+        return { success: false, message: `Klasör açılamadı: ${error.message}` };
+    }
+}
 
 export async function restoreBackup(formData: FormData) {
     try {
