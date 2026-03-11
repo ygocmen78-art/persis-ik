@@ -180,29 +180,40 @@ function createWindow() {
 
     // Auto-fill handling for newly opened windows
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+        const allowedWindowOptions = {
+            autoHideMenuBar: true,
+            icon: iconPath,
+            webPreferences: { nodeIntegration: false, contextIsolation: true }
+        };
+
+        // SGK, ebildirge harici siteler
         if (url.includes('sgk.gov.tr') || url.includes('ebildirge')) {
-            return {
-                action: 'allow',
-                overrideBrowserWindowOptions: {
-                    autoHideMenuBar: true,
-                    icon: iconPath,
-                    webPreferences: {
-                        nodeIntegration: false,
-                        contextIsolation: true
-                    }
-                }
-            };
+            return { action: 'allow', overrideBrowserWindowOptions: allowedWindowOptions };
         }
-        // blob:/data: URL'leri PDF yazdirma icin izin ver
+
+        // blob: ve data: URL'leri (PDF/izin formu yazdirma)
         if (url.startsWith('blob:') || url.startsWith('data:')) {
             return {
                 action: 'allow',
                 overrideBrowserWindowOptions: {
-                    width: 900, height: 700,
+                    width: 900, height: 750, autoHideMenuBar: true,
                     webPreferences: { nodeIntegration: false, contextIsolation: true }
                 }
             };
         }
+
+        // localhost URL'leri (dokuman, ISG, ozluk evragi yazdirma)
+        if (url.includes('localhost') || url.includes('127.0.0.1')) {
+            return {
+                action: 'allow',
+                overrideBrowserWindowOptions: {
+                    width: 900, height: 750, autoHideMenuBar: true,
+                    webPreferences: { nodeIntegration: false, contextIsolation: true }
+                }
+            };
+        }
+
+        // Dis URL'ler tarayicide ac
         if (url.startsWith('https://') || url.startsWith('http://')) {
             require('electron').shell.openExternal(url);
         }
