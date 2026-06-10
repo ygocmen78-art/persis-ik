@@ -1,6 +1,6 @@
 {
     "name": "persis-ik",
-    "version": "0.1.68",
+    "version": "0.1.69",
     "description": "Persis IK Desktop Application",
     "private": true,
     "main": "main.js",
@@ -84,6 +84,7 @@
         ],
         "win": {
             "icon": "build/icon.ico",
+            "artifactName": "Persis-IK-Setup-${version}.${ext}",
             "verifyUpdateCodeSignature": false,
             "signAndEditExecutable": true,
             "target": [
