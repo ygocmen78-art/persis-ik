@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+
 jobs:
   build-and-release:
     runs-on: windows-latest
@@ -22,16 +25,7 @@ jobs:
       - name: Bagımlılıkları yükle
         run: npm ci
 
-      - name: Uygulama sürümünü oku
-        id: version
-        run: |
-          $version = (Get-Content package.json | ConvertFrom-Json).version
-          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
-
       - name: EXE Build et ve GitHub Release yayinla
         run: npm run app:publish
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-
-      - name: Release bilgisi
-        run: echo "v${{ steps.version.outputs.VERSION }} basariyla yayinlandi!"
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
