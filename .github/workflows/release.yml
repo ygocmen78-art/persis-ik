@@ -1,0 +1,37 @@
+name: Persis IK - Build ve Yayinla
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Kodu indir
+        uses: actions/checkout@v4
+
+      - name: Node.js kur
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Bagımlılıkları yükle
+        run: npm ci
+
+      - name: Uygulama sürümünü oku
+        id: version
+        run: |
+          $version = (Get-Content package.json | ConvertFrom-Json).version
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+
+      - name: EXE Build et ve GitHub Release yayinla
+        run: npm run app:publish
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Release bilgisi
+        run: echo "v${{ steps.version.outputs.VERSION }} basariyla yayinlandi!"
