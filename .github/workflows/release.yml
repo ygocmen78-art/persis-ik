@@ -25,7 +25,39 @@ jobs:
       - name: Bagımlılıkları yükle
         run: npm ci
 
-      - name: EXE Build et ve GitHub Release yayinla
-        run: npm run app:publish
+      - name: Surum numarasini oku
+        id: version
+        run: |
+          $version = (Get-Content package.json | ConvertFrom-Json).version
+          echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+          echo "Surum: $version"
+
+      - name: Next.js build
+        run: npm run build
+
+      - name: Dosyalari kopyala
+        run: |
+          xcopy /e /i /y public .next\standalone\public
+          xcopy /e /i /y .next\static .next\standalone\.next\static
+
+      - name: EXE olustur (publish olmadan)
+        run: npx electron-builder --win nsis
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Olusturulan dosyalari listele
+        run: dir dist\
+
+      - name: GitHub Release olustur ve EXE yukle
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.VERSION }}
+          name: v${{ steps.version.outputs.VERSION }}
+          draft: false
+          prerelease: false
+          files: |
+            dist/*.exe
+            dist/*.yml
+            dist/*.blockmap
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
