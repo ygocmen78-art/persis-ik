@@ -20,6 +20,9 @@ export const branches = sqliteTable("branches", {
     sgk_workplace_password: text("sgk_workplace_password"), // İşyeri Şifresi
     sgk_user_code: text("sgk_user_code"), // Kullanıcı Kodu
     sgk_code: text("sgk_code"), // SGK Kod
+    authorized_user_code: text("authorized_user_code"),
+    authorized_user_code_suffix: text("authorized_user_code_suffix"),
+    authorized_user_password: text("authorized_user_password"),
 
     createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
@@ -42,7 +45,7 @@ export const employees = sqliteTable("employees", {
     lastName: text("last_name").notNull(),
     email: text("email"),
     phone: text("phone"),
-    tcNumber: text("tc_number").unique(),
+    tcNumber: text("tc_number"),
 
     birthDate: text("birth_date"), // ISO Date string YYYY-MM-DD
     gender: text("gender").default("male"), // male, female
@@ -65,6 +68,12 @@ export const employees = sqliteTable("employees", {
 
     status: text("status").default("active"), // active, passive, on_leave
     avatarUrl: text("avatar_url"),
+
+    employmentStatus: text("employment_status").default("Daimi"), // İstihdam türü
+    ehliyetClass: text("ehliyet_class"),       // Ehliyet sınıfı: B, C, D, E vb.
+    ehliyetExpiry: text("ehliyet_expiry"),     // Ehliyet bitiş tarihi YYYY-MM-DD
+    srcExpiry: text("src_expiry"),             // SRC belgesi bitiş tarihi YYYY-MM-DD
+    psikoteknikExpiry: text("psikoteknik_expiry"), // Psikoteknik belgesi bitiş tarihi YYYY-MM-DD
 
     createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
     updatedAt: text("updated_at").default(sql`CURRENT_TIMESTAMP`),
@@ -201,4 +210,39 @@ export const attendance = sqliteTable("attendance", {
 export const attendanceSettings = sqliteTable("attendance_settings", {
     key: text("key").primaryKey(), // sunday_pay_rate
     value: text("value").notNull(),
+});
+
+// --- Disiplin Tutanakları ---
+export const disciplinaryRecords = sqliteTable("disciplinary_records", {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    employeeId: integer("employee_id").references(() => employees.id).notNull(),
+    violationType: text("violation_type").notNull(),
+    incidentDate: text("incident_date").notNull(),
+    description: text("description"),
+    status: text("status").default("active"),
+    createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// --- Özel Meslek Kodları ---
+export const customOccupationCodes = sqliteTable("custom_occupation_codes", {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    code: text("code").notNull(),
+    description: text("description"),
+    createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// --- İstihdam Geçmişi (Employment History) ---
+export const employmentHistory = sqliteTable("employment_history", {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    employeeId: integer("employee_id").references(() => employees.id).notNull(),
+    branchId: integer("branch_id").references(() => branches.id),
+    sgkBranchId: integer("sgk_branch_id").references(() => branches.id),
+    department: text("department"),
+    position: text("position"),
+    startDate: text("start_date"),
+    endDate: text("end_date"),
+    terminationReason: text("termination_reason"),
+    sgkExitCode: text("sgk_exit_code"),
+    salary: real("salary"),
+    createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });

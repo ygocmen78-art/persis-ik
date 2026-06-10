@@ -284,7 +284,7 @@ export function LeaveRequestForm({ employees, initialData, onSuccess }: LeaveReq
                                     <span className="text-sm">kullanılacak izin.</span>
                                 </div>
                                 <div className="border-l border-blue-200 pl-8">
-                                    <span className="font-semibold block text-xl">{format(returnDate, "d MMMM yyyy", { locale: tr })}</span>
+                                    <span className="font-semibold block text-xl">{format(returnDate, "dd.MM.yyyy")}</span>
                                     <span className="text-sm">İşe Başlama Tarihi</span>
                                 </div>
                             </div>

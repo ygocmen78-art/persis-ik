@@ -29,8 +29,16 @@ export default async function RootLayout({
             __html: `
               try {
                 const colorTheme = '${theme}' || localStorage.getItem('color-theme') || 'violet';
+                // Apply dark-pro class if needed
+                if (colorTheme === 'darkpro') {
+                  document.documentElement.classList.add('dark-pro');
+                  document.documentElement.classList.remove('dark');
+                } else {
+                  document.documentElement.classList.remove('dark-pro');
+                }
                 const themes = {
                   violet: { primary: "0.55 0.22 280", ring: "0.55 0.22 280" },
+                  darkpro: { primary: "0.65 0.22 300", ring: "0.65 0.22 300" },
                   blue: { primary: "0.55 0.20 240", ring: "0.55 0.20 240" },
                   green: { primary: "0.55 0.18 145", ring: "0.55 0.18 145" },
                   red: { primary: "0.60 0.22 25", ring: "0.60 0.22 25" },

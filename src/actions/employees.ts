@@ -1,7 +1,7 @@
 "use server"
 
 import { db } from "@/db"
-import { employees, branches, leaves, garnishments, garnishmentInstallments, isgRecords, documents, expenses } from "@/db/schema"
+import { employees, branches, leaves, garnishments, garnishmentInstallments, isgRecords, documents, expenses, customOccupationCodes, employmentHistory, attendance, disciplinaryRecords } from "@/db/schema"
 import { eq, desc, inArray, isNotNull } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { alias } from "drizzle-orm/sqlite-core"
@@ -64,6 +64,11 @@ export async function addEmployee(data: {
     position?: string
     department?: string
     besStatus?: string
+    ehliyetClass?: string
+    ehliyetExpiry?: string
+    srcExpiry?: string
+    psikoteknikExpiry?: string
+    employmentStatus?: string
 }) {
     try {
         await db.insert(employees).values({
@@ -83,6 +88,11 @@ export async function addEmployee(data: {
             grossSalary: data.grossSalary,
             iban: data.iban,
             besStatus: data.besStatus || "voluntary",
+            ehliyetClass: data.ehliyetClass || null,
+            ehliyetExpiry: data.ehliyetExpiry || null,
+            srcExpiry: data.srcExpiry || null,
+            psikoteknikExpiry: data.psikoteknikExpiry || null,
+            employmentStatus: data.employmentStatus || "Daimi",
             status: "active",
             avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.firstName}${data.lastName}&${data.gender === "female"
                 ? "top[]=longHair,longHairBigHair,longHairBob,longHairBun,longHairCurly,longHairCurvy,longHairDreads,longHairFrida,longHairFro,longHairFroBand,longHairNotTooLong,longHairMiaWallace,longHairStraight,longHairStraight2,longHairStraightStrand&facialHairProbability=0"
@@ -120,6 +130,11 @@ export async function updateEmployee(id: number, data: {
     iban?: string
     besStatus?: string
     leaveCarryover?: number
+    ehliyetClass?: string
+    ehliyetExpiry?: string
+    srcExpiry?: string
+    psikoteknikExpiry?: string
+    employmentStatus?: string
 }) {
     try {
         await db.update(employees)
@@ -143,17 +158,24 @@ export async function updateEmployee(id: number, data: {
 // Pozisyonları getir (Auto-complete için)
 export async function getUniquePositions() {
     try {
-        const result = await db.selectDistinct({ position: employees.position })
-            .from(employees)
-            .where(isNotNull(employees.position));
+        const [dbPositions, customCodes] = await Promise.all([
+            db.selectDistinct({ position: employees.position })
+                .from(employees)
+                .where(isNotNull(employees.position)),
+            db.select({ code: customOccupationCodes.code, description: customOccupationCodes.description })
+                .from(customOccupationCodes)
+        ])
 
-        return result
+        const fromDb = dbPositions
             .map(r => r.position)
             .filter((p): p is string => typeof p === 'string' && p.length > 0)
-            .sort();
+
+        const fromCustom = customCodes.map(c => c.description ? `${c.code} - ${c.description}` : c.code)
+
+        return [...new Set([...fromCustom, ...fromDb])].sort()
     } catch (error) {
-        console.error("Get positions error:", error);
-        return [];
+        console.error("Get positions error:", error)
+        return []
     }
 }
 
@@ -205,10 +227,15 @@ export async function deleteEmployee(id: number) {
             // 3. İSG Kayıtlarını Sil
             tx.delete(isgRecords).where(eq(isgRecords.employeeId, id)).run();
 
+            // 3b. Devam ve Disiplin Kayıtlarını Sil
+            tx.delete(attendance).where(eq(attendance.employeeId, id)).run();
+            tx.delete(disciplinaryRecords).where(eq(disciplinaryRecords.employeeId, id)).run();
+
             // 4. Dokümanları Sil
             tx.delete(documents).where(eq(documents.employeeId, id)).run();
 
             // 5. Harcamaları Sil
+            tx.delete(employmentHistory).where(eq(employmentHistory.employeeId, id)).run();
             tx.delete(expenses).where(eq(expenses.employeeId, id)).run();
 
             // 6. Personeli Sil
@@ -245,10 +272,15 @@ export async function deleteEmployees(ids: number[]) {
             // 3. İSG Kayıtlarını Sil
             tx.delete(isgRecords).where(inArray(isgRecords.employeeId, ids)).run();
 
+            // 3b. Devam ve Disiplin Kayıtlarını Sil
+            tx.delete(attendance).where(inArray(attendance.employeeId, ids)).run();
+            tx.delete(disciplinaryRecords).where(inArray(disciplinaryRecords.employeeId, ids)).run();
+
             // 4. Dokümanları Sil
             tx.delete(documents).where(inArray(documents.employeeId, ids)).run();
 
             // 5. Harcamaları Sil
+            tx.delete(employmentHistory).where(inArray(employmentHistory.employeeId, ids)).run();
             tx.delete(expenses).where(inArray(expenses.employeeId, ids)).run();
 
             // 6. Personeli Sil
@@ -261,4 +293,54 @@ export async function deleteEmployees(ids: number[]) {
         console.error("Bulk delete employee error:", error);
         return { success: false, message: `Toplu silme işlemi sırasında hata oluştu: ${error.message}` }
     }
+}
+
+// Ehliyet/SRC/Psikoteknik süresi yaklaşan personel
+export async function getExpiringLicenses(daysAhead: number = 30) {
+    const allEmployees = await db.select({
+        id: employees.id,
+        firstName: employees.firstName,
+        lastName: employees.lastName,
+        ehliyetClass: employees.ehliyetClass,
+        ehliyetExpiry: employees.ehliyetExpiry,
+        srcExpiry: employees.srcExpiry,
+        psikoteknikExpiry: employees.psikoteknikExpiry,
+    }).from(employees).where(eq(employees.status, "active"))
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const limitDate = new Date(today)
+    limitDate.setDate(limitDate.getDate() + daysAhead)
+
+    const alerts: Array<{
+        employeeId: number
+        employeeName: string
+        type: string
+        expiryDate: string
+        status: 'expired' | 'expiring'
+    }> = []
+
+    for (const emp of allEmployees) {
+        const checks = [
+            { type: 'Ehliyet', date: emp.ehliyetExpiry },
+            { type: 'SRC Belgesi', date: emp.srcExpiry },
+            { type: 'Psikoteknik', date: emp.psikoteknikExpiry },
+        ]
+        for (const check of checks) {
+            if (!check.date) continue
+            const expDate = new Date(check.date)
+            expDate.setHours(0, 0, 0, 0)
+            if (expDate <= limitDate) {
+                alerts.push({
+                    employeeId: emp.id,
+                    employeeName: `${emp.firstName} ${emp.lastName}`,
+                    type: check.type,
+                    expiryDate: check.date,
+                    status: expDate < today ? 'expired' : 'expiring',
+                })
+            }
+        }
+    }
+
+    return alerts
 }

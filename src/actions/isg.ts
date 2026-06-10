@@ -99,7 +99,9 @@ export async function deleteISGRecord(id: number) {
 
         if (record?.filePath) {
             try {
-                const filepath = path.join(process.cwd(), 'public', record.filePath)
+                const uploadsBase = process.env.UPLOAD_BASE || path.join(process.cwd(), "public", "uploads")
+                const relativeToUploads = record.filePath.replace(/^\/uploads\//, "")
+                const filepath = path.join(uploadsBase, relativeToUploads)
                 await unlink(filepath)
             } catch (error) {
                 console.error("File deletion error:", error)
@@ -153,7 +155,9 @@ export async function updateISGRecord(id: number, data: {
 
             if (oldRecord?.filePath) {
                 try {
-                    const oldFilePath = path.join(process.cwd(), 'public', oldRecord.filePath)
+                    const uploadsBase = process.env.UPLOAD_BASE || path.join(process.cwd(), "public", "uploads")
+                    const relativeToUploads = oldRecord.filePath.replace(/^\/uploads\//, "")
+                    const oldFilePath = path.join(uploadsBase, relativeToUploads)
                     await unlink(oldFilePath)
                 } catch (error) {
                     console.error("Old file deletion error:", error)

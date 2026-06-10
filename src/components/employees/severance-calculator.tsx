@@ -158,7 +158,7 @@ export function SeveranceCalculator({ startDate, grossSalary, terminationDate, u
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label>İşe Giriş Tarihi</Label>
-                        <Input disabled value={format(new Date(startDate), "d MMMM yyyy", { locale: tr })} />
+                        <Input disabled value={format(new Date(startDate), "dd.MM.yyyy")} />
                     </div>
                     <div className="space-y-2">
                         <Label>İşten Çıkış Tarihi</Label>

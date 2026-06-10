@@ -13,12 +13,17 @@ import { RestoreButton } from "@/components/settings/restore-button"
 import { BackupFolderButton } from "@/components/settings/backup-folder-button"
 import { UserManager } from "@/components/settings/user-manager"
 import { getAppUsers } from "@/actions/user-actions"
+import { getCustomOccupationCodes } from "@/actions/settings"
+import { OccupationCodesManager } from "@/components/settings/occupation-codes-manager"
+import { AuthorizedUserManager } from "@/components/settings/authorized-user-manager"
 
 export default async function SettingsPage() {
     const branches = await getBranches()
     const departments = await getDepartments()
     const documentTypes = await getDocumentTypes()
     const users = await getAppUsers()
+    const customCodes = await getCustomOccupationCodes()
+    // authorizedUser is now per-branch, no global fetch needed
 
     return (
         <div className="flex-1 space-y-4 p-8 pt-6">
@@ -31,6 +36,8 @@ export default async function SettingsPage() {
                     <TabsTrigger value="general">Görünüm</TabsTrigger>
                     <TabsTrigger value="users">Kullanıcılar</TabsTrigger>
                     <TabsTrigger value="backup">Yedekleme</TabsTrigger>
+                    <TabsTrigger value="occupation-codes">Meslek Kodları</TabsTrigger>
+                    <TabsTrigger value="authorized-user">Yetkili Kullanıcı</TabsTrigger>
                 </TabsList>
                 <TabsContent value="branches" className="space-y-4">
                     <BranchManager initialBranches={branches} />
@@ -89,6 +96,20 @@ export default async function SettingsPage() {
                             </p>
                         </div>
                     </div>
+                </TabsContent>
+                <TabsContent value="occupation-codes" className="space-y-4">
+                    <div className="p-4 border rounded-lg max-w-2xl">
+                        <div className="mb-4">
+                            <h3 className="text-lg font-medium">Özel Meslek Kodları</h3>
+                            <p className="text-sm text-muted-foreground">
+                                SGK listesinde bulunmayan meslek kodlarını buradan ekleyin. Eklenen kodlar personel formundaki SGK Meslek alanında otomatik önerilir.
+                            </p>
+                        </div>
+                        <OccupationCodesManager codes={customCodes} />
+                    </div>
+                </TabsContent>
+                <TabsContent value="authorized-user">
+                    <AuthorizedUserManager branches={branches} />
                 </TabsContent>
             </Tabs>
         </div>

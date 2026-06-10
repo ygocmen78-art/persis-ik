@@ -99,11 +99,13 @@ export function DocumentCard({ document, employees, documentTypes }: DocumentCar
     }
 
     function handlePrint() {
-        if (document.filePath) {
-            const printWindow = window.open(document.filePath, '_blank')
-            printWindow?.addEventListener('load', () => {
-                printWindow.print()
-            })
+        if (!document.filePath) return;
+        try {
+            const { ipcRenderer } = (window as any).require('electron');
+            ipcRenderer.invoke('print-file', document.filePath);
+        } catch {
+            const w = window.open(document.filePath, '_blank');
+            if (w) w.onload = () => w.print();
         }
     }
 
@@ -255,7 +257,7 @@ export function DocumentCard({ document, employees, documentTypes }: DocumentCar
 
             {/* Edit Dialog */}
             <Dialog open={editOpen} onOpenChange={setEditOpen}>
-                <DialogContent className="sm:max-w-[500px]">
+                <DialogContent className="sm:max-w-[500px] force-light">
                     <DialogHeader>
                         <DialogTitle>İSG Evrak Düzenle</DialogTitle>
                     </DialogHeader>

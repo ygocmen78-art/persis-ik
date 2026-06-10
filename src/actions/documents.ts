@@ -133,6 +133,35 @@ export async function getEmployeeDocuments(employeeId: number) {
     }
 }
 
+export async function saveEmployeeDocument(data: {
+    employeeId: number
+    title: string
+    category: string
+    filePath: string
+    fileName: string
+    fileSize: number
+    fileExt: string
+}) {
+    try {
+        const inserted = await db.insert(documents).values({
+            employeeId: data.employeeId,
+            title: data.title,
+            type: data.fileExt.replace(".", "").toLowerCase(),
+            category: data.category,
+            filePath: data.filePath,
+            fileName: data.fileName,
+            fileSize: data.fileSize,
+            relatedTo: "employee"
+        }).returning()
+
+        revalidatePath(`/employees/${data.employeeId}`)
+        return { success: true, message: "Evrak başarıyla yüklendi.", document: inserted[0] }
+    } catch (error: any) {
+        console.error("Save document error:", error)
+        return { success: false, message: `Evrak kaydedilirken hata oluştu: ${error.message}` }
+    }
+}
+
 export async function uploadEmployeeDocument(formData: FormData) {
     try {
         const file = formData.get("file") as File
@@ -148,8 +177,8 @@ export async function uploadEmployeeDocument(formData: FormData) {
         const bytes = await file.arrayBuffer()
         const buffer = Buffer.from(bytes)
 
-        // Upload directory
-        const uploadDir = path.join(process.cwd(), "public", "uploads", "documents")
+        // Upload directory — use UPLOAD_DIR env var (set by Electron) or fallback for dev
+        const uploadDir = process.env.UPLOAD_DIR || path.join(process.cwd(), "public", "uploads", "documents")
 
         // Ensure directory exists
         if (!existsSync(uploadDir)) {
@@ -200,7 +229,10 @@ export async function deleteEmployeeDocument(id: number, employeeId: number) {
 
         // Delete from disk
         if (doc.filePath) {
-            const absolutePath = path.join(process.cwd(), "public", doc.filePath.replace(/^\//, ""))
+            const uploadsBase = process.env.UPLOAD_BASE || path.join(process.cwd(), "public", "uploads")
+            // filePath is like /uploads/documents/filename — strip the leading /uploads/ prefix
+            const relativeToUploads = doc.filePath.replace(/^\/uploads\//, "")
+            const absolutePath = path.join(uploadsBase, relativeToUploads)
             if (existsSync(absolutePath)) {
                 await unlink(absolutePath)
             }

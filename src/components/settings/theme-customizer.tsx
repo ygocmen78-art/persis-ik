@@ -11,6 +11,7 @@ import { updateTheme } from "@/actions/settings"
 
 const themes = [
     { name: "violet", label: "Mor", color: "bg-purple-600", cssVars: { primary: "0.55 0.22 280", ring: "0.55 0.22 280" } },
+    { name: "darkpro", label: "Karanlık Pro", color: "bg-purple-900", cssVars: { primary: "0.65 0.22 300", ring: "0.65 0.22 300" } },
     { name: "blue", label: "Mavi", color: "bg-blue-600", cssVars: { primary: "0.55 0.20 240", ring: "0.55 0.20 240" } },
     { name: "green", label: "Yeşil", color: "bg-green-600", cssVars: { primary: "0.55 0.18 145", ring: "0.55 0.18 145" } },
     { name: "red", label: "Kırmızı", color: "bg-red-600", cssVars: { primary: "0.60 0.22 25", ring: "0.60 0.22 25" } },
@@ -43,6 +44,14 @@ export function ThemeCustomizer() {
         const root = document.documentElement
         root.style.setProperty('--primary', `oklch(${selectedTheme.cssVars.primary})`, 'important')
         root.style.setProperty('--ring', `oklch(${selectedTheme.cssVars.ring})`, 'important')
+
+        // Handle dark-pro class
+        if (themeName === 'darkpro') {
+            root.classList.add('dark-pro')
+            root.classList.remove('dark')
+        } else {
+            root.classList.remove('dark-pro')
+        }
 
         // Also set attribute for persistence via script
         root.setAttribute('data-theme-color', themeName)

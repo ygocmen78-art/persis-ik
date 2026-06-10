@@ -81,12 +81,18 @@ export function EmployeeList({ data, branches }: EmployeeListProps) {
                 const email = (e.email || "").toLocaleLowerCase('tr-TR')
                 const dept = (e.department || "").toLocaleLowerCase('tr-TR')
                 const pos = (e.position || "").toLocaleLowerCase('tr-TR')
+                const phone = (e.phone || "")
+                const branchName = (e.branchName || "").toLocaleLowerCase('tr-TR')
+                const sgkBranchName = (e.sgkBranchName || "").toLocaleLowerCase('tr-TR')
 
                 return fullName.includes(nQuery) ||
                     tc.includes(nQuery) ||
                     email.includes(nQuery) ||
                     dept.includes(nQuery) ||
-                    pos.includes(nQuery)
+                    pos.includes(nQuery) ||
+                    phone.includes(nQuery) ||
+                    branchName.includes(nQuery) ||
+                    sgkBranchName.includes(nQuery)
             })
         }
 
@@ -144,7 +150,7 @@ export function EmployeeList({ data, branches }: EmployeeListProps) {
     }
 
     return (
-        <div className="flex flex-col h-[calc(100vh-140px)]">
+        <div className="flex flex-col">
             {/* Fixed top section - filters */}
             <div className="flex-shrink-0 pb-3 border-b border-border/50">
                 <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
@@ -182,7 +188,7 @@ export function EmployeeList({ data, branches }: EmployeeListProps) {
                         </Button>
 
                         <div className="ml-2 px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium border border-primary/20">
-                            {filteredCount} Kişi
+                            {searchTerm ? `${filteredCount} / ${data.filter(e => showTerminated ? (e.status === "passive" || e.status === "inactive") : (e.status !== "passive" && e.status !== "inactive")).length} Kişi` : `${filteredCount} Kişi`}
                         </div>
                     </div>
                     <div className="flex gap-2">
@@ -205,8 +211,8 @@ export function EmployeeList({ data, branches }: EmployeeListProps) {
                 </div>
             </div>
 
-            {/* Scrollable table section */}
-            <div className="flex-1 overflow-y-auto mt-2">
+            {/* Table section */}
+            <div className="mt-2">
                 <DataTable
                     columns={columns}
                     data={formattedData}

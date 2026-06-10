@@ -131,7 +131,7 @@ export const columns: ColumnDef<Employee>[] = [
         cell: ({ row }) => {
             const start = row.original.startDate
             if (!start) return "-"
-            return format(new Date(start), "d MMM yyyy", { locale: tr })
+            return format(new Date(start), "dd.MM.yyyy")
         }
     },
     {
@@ -140,7 +140,7 @@ export const columns: ColumnDef<Employee>[] = [
         cell: ({ row }) => {
             const end = row.original.terminationDate
             if (!end) return <span className="text-muted-foreground">-</span>
-            return <span className="text-red-600 font-medium">{format(new Date(end), "d MMM yyyy", { locale: tr })}</span>
+            return <span className="text-red-600 font-medium">{format(new Date(end), "dd.MM.yyyy")}</span>
         }
     },
     {

@@ -83,7 +83,7 @@ export function LeaveHistory({ employeeId, initialLeaves, availableBalance }: Le
                                 {getLeaveLabel(leave.type)}
                             </p>
                             <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                {format(new Date(leave.startDate), "d MMM yyyy", { locale: tr })} - {format(new Date(leave.endDate), "d MMM yyyy", { locale: tr })}
+                                {format(new Date(leave.startDate), "dd.MM.yyyy")} - {format(new Date(leave.endDate), "dd.MM.yyyy")}
                                 <span className="ml-1 font-bold text-slate-700 dark:text-slate-300">({leave.daysCount} gün)</span>
                                 {leave.status === "approved" && (
                                     <Badge variant="outline" className="ml-2 h-4 px-1 text-[10px] bg-green-50 text-green-700 border-green-200">Onaylı</Badge>

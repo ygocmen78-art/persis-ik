@@ -18,7 +18,8 @@ import {
     ClipboardList,
     PiggyBank,
     Landmark,
-    Calculator
+    Calculator,
+    AlertTriangle
 } from "lucide-react"
 
 import { LogoIcon } from "@/components/icons/logo"
@@ -95,6 +96,14 @@ const sidebarItems = [
         variant: "ghost",
         color: "text-emerald-500",
         bgColor: "bg-emerald-500",
+    },
+    {
+        title: "Disiplin",
+        href: "/disciplinary",
+        icon: AlertTriangle,
+        variant: "ghost",
+        color: "text-rose-500",
+        bgColor: "bg-rose-500",
     },
     {
         title: "İSG Takip",
@@ -177,6 +186,7 @@ export function Sidebar({ className }: { className?: string }) {
                                                         item.href === "/reports/execution" ? "bg-pink-500" :
                                                             item.href === "/reports/bes" ? "bg-indigo-500" :
                                                                 item.href === "/reports/compensation" ? "bg-emerald-500" :
+                                                                    item.href === "/disciplinary" ? "bg-rose-500" :
                                                                     item.href === "/isg" ? "bg-yellow-500" :
                                                                         item.href === "/attendance" ? "bg-teal-500" :
                                                                             item.href === "/sgk" ? "bg-sky-500" :
@@ -212,20 +222,7 @@ export function Sidebar({ className }: { className?: string }) {
 
 
                 {/* Spacer to push logout to bottom if we want, or just below management */}
-                <div className="mt-auto pt-4 border-t border-zinc-200 dark:border-zinc-800 px-3">
-                    <Button
-                        variant="ghost"
-                        onClick={async () => {
-                            const { logout } = await import("@/actions/auth");
-                            await logout();
-                            window.location.href = "/login";
-                        }}
-                        className="w-full justify-start gap-3 h-11 px-3 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-700 dark:hover:text-red-300 hover:translate-x-1 transition-all duration-200"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-log-out h-4 w-4 shrink-0"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" x2="9" y1="12" y2="12" /></svg>
-                        <span className="text-sm font-medium">Güvenli Çıkış Yap</span>
-                    </Button>
-                </div>
+
 
                 {/* Developer Signature & Support */}
                 <div className="px-6 pt-2 pb-4">

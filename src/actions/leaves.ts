@@ -1,7 +1,7 @@
 "use server"
 
 import { db } from "@/db"
-import { leaves, employees } from "@/db/schema"
+import { leaves, employees, branches } from "@/db/schema"
 import { eq, desc } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { calculateAnnualLeaveEntitlement } from "@/lib/leave-utils"
@@ -236,10 +236,12 @@ export async function getEmployeeLeaveBalance(employeeId: number) {
 export async function getLeaveDetails(leaveId: number) {
     const data = await db.select({
         leave: leaves,
-        employee: employees
+        employee: employees,
+        companyName: branches.name,
     })
         .from(leaves)
         .leftJoin(employees, eq(leaves.employeeId, employees.id))
+        .leftJoin(branches, eq(employees.branchId, branches.id))
         .where(eq(leaves.id, leaveId))
         .limit(1)
 

@@ -82,7 +82,7 @@ export default async function LeavePage() {
                                                         {leave.employeeName} {leave.employeeSurname}
                                                     </p>
                                                     <p className="text-xs text-muted-foreground">
-                                                        {format(new Date(leave.startDate), "d MMM", { locale: tr })} - {format(new Date(leave.endDate), "d MMM yyyy", { locale: tr })}
+                                                        {format(new Date(leave.startDate), "dd.MM")} - {format(new Date(leave.endDate), "dd.MM.yyyy")}
                                                         {leave.daysCount && <span className="ml-2 font-semibold">({leave.daysCount} gün)</span>}
                                                     </p>
                                                 </div>

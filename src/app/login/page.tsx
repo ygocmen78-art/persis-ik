@@ -50,15 +50,15 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950 p-4 relative overflow-hidden">
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f9fafb', padding: '1rem', position: 'relative', overflow: 'hidden' }}>
             {/* Background Decorations */}
             <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-red-500/10 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-rose-500/10 rounded-full blur-3xl pointer-events-none" />
 
-            <Card className="w-full max-w-md shadow-2xl border-zinc-200/50 dark:border-zinc-800/50 backdrop-blur-sm bg-white/90 dark:bg-zinc-900/90 relative z-10">
+            <Card className="w-full max-w-md shadow-2xl border-zinc-200/50 dark:border-zinc-800/50 backdrop-blur-sm bg-white/90 dark:bg-zinc-900/90 relative z-10 bg-white text-gray-900">
                 <CardHeader className="space-y-3 pb-6 pt-8">
                     <div className="flex justify-center mb-2">
-                        <div className="w-20 h-20 flex items-center justify-center">
+                        <div style={{ width: '80px', height: '80px', flexShrink: 0 }}>
                             <LogoIcon className="w-full h-full" />
                         </div>
                     </div>
@@ -70,13 +70,13 @@ export default function LoginPage() {
                 <form onSubmit={handleLogin}>
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="username">Kullanıcı Adı</Label>
+                            <Label htmlFor="username" className="text-gray-700">Kullanıcı Adı</Label>
                             <div className="relative">
                                 <User className="absolute left-3 top-3 h-4 w-4 text-zinc-400" />
                                 <Input
                                     id="username"
                                     placeholder="admin"
-                                    className="pl-9 bg-zinc-50/50 dark:bg-zinc-950/50"
+                                    className="pl-9 bg-zinc-50/50 dark:bg-zinc-950/50 text-gray-900 bg-white placeholder:text-gray-400"
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
                                     required
@@ -85,14 +85,14 @@ export default function LoginPage() {
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="password">Şifre</Label>
+                            <Label htmlFor="password" className="text-gray-700">Şifre</Label>
                             <div className="relative">
                                 <Lock className="absolute left-3 top-3 h-4 w-4 text-zinc-400" />
                                 <Input
                                     id="password"
                                     type="password"
                                     placeholder="••••••"
-                                    className="pl-9 bg-zinc-50/50 dark:bg-zinc-950/50"
+                                    className="pl-9 bg-zinc-50/50 dark:bg-zinc-950/50 text-gray-900 bg-white placeholder:text-gray-400"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required

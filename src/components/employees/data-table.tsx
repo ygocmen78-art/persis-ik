@@ -110,7 +110,7 @@ export function DataTable<TData, TValue>({
                     </Button>
                 )}
             </div>
-            <div className="rounded-md border bg-white dark:bg-zinc-950">
+            <div className="rounded-md border bg-card text-card-foreground">
                 <Table>
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
@@ -146,7 +146,7 @@ export function DataTable<TData, TValue>({
                                         if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('[role="checkbox"]')) return;
                                         window.location.href = `/employees/${(row.original as any).id}`
                                     }}
-                                    className="cursor-pointer hover:bg-muted/50 text-zinc-900 dark:text-zinc-100"
+                                    className="cursor-pointer hover:bg-muted/50 text-foreground"
                                 >
                                     {row.getVisibleCells().map((cell) => (
                                         <TableCell key={cell.id}>

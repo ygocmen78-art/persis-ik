@@ -46,29 +46,12 @@ export function DocumentPreview({ open, onOpenChange, filePath, fileType, title 
 
     function handlePrint() {
         if (!filePath) return
-
-        const printWindow = window.open(filePath, '_blank')
-
-        if (printWindow) {
-            // Try both load event and timeout for reliability
-            let printed = false
-
-            printWindow.addEventListener('load', () => {
-                if (!printed) {
-                    printed = true
-                    setTimeout(() => {
-                        printWindow.print()
-                    }, 250)
-                }
-            })
-
-            // Fallback timeout in case load event doesn't fire
-            setTimeout(() => {
-                if (!printed) {
-                    printed = true
-                    printWindow.print()
-                }
-            }, 1000)
+        try {
+            const { ipcRenderer } = (window as any).require('electron');
+            ipcRenderer.invoke('print-file', filePath);
+        } catch {
+            const w = window.open(filePath, '_blank');
+            if (w) w.onload = () => w.print();
         }
     }
 
@@ -157,7 +140,7 @@ export function DocumentPreview({ open, onOpenChange, filePath, fileType, title 
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 overflow-auto bg-gray-100 dark:bg-gray-900">
+                <div className="flex-1 overflow-auto" style={{background:'white'}}>
                     {fileType === 'image' && filePath ? (
                         <div
                             ref={imageRef}
@@ -204,7 +187,7 @@ export function DocumentPreview({ open, onOpenChange, filePath, fileType, title 
     // Normal mode - use Dialog
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-[95vw] sm:max-w-[95vw] w-[95vw] h-[95vh] flex flex-col p-0 overflow-hidden">
+            <DialogContent className="force-light max-w-[95vw] sm:max-w-[95vw] w-[95vw] h-[95vh] flex flex-col p-0 overflow-hidden bg-white text-gray-900 [&_select]:bg-white [&_select]:text-gray-900 [&_input]:bg-white [&_input]:text-gray-900 [&_button]:bg-gray-100 [&_button]:text-gray-900">
                 <DialogHeader className="px-6 py-4 border-b">
                     <DialogTitle className="flex items-center justify-between">
                         <span>{title}</span>
@@ -244,7 +227,7 @@ export function DocumentPreview({ open, onOpenChange, filePath, fileType, title 
                     </DialogTitle>
                 </DialogHeader>
 
-                <div className="flex-1 overflow-auto bg-gray-100 dark:bg-gray-900 rounded-lg">
+                <div className="flex-1 overflow-auto rounded-lg" style={{background:'white'}}>
                     {fileType === 'image' && filePath ? (
                         <div
                             ref={imageRef}

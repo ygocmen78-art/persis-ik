@@ -29,10 +29,8 @@ export default function AboutPage() {
         if (stored) {
             setUpdateDate(stored);
         } else {
-            const now = new Date().toLocaleDateString("tr-TR", {
-                year: "numeric", month: "long", day: "numeric",
-                hour: "2-digit", minute: "2-digit"
-            });
+            const d = new Date();
+            const now = `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
             localStorage.setItem("install_date", now);
             setUpdateDate(now);
         }
@@ -48,10 +46,8 @@ export default function AboutPage() {
     };
 
     const formatDate = (iso: string) => {
-        return new Date(iso).toLocaleDateString("tr-TR", {
-            year: "numeric", month: "long", day: "numeric",
-            hour: "2-digit", minute: "2-digit"
-        });
+        const d = new Date(iso);
+        return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
     };
 
     return (

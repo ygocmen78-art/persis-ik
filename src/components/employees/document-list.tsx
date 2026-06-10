@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { uploadEmployeeDocument, deleteEmployeeDocument } from "@/actions/documents"
+import { saveEmployeeDocument, deleteEmployeeDocument } from "@/actions/documents"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -82,14 +82,35 @@ export function DocumentList({
         if (!file || !title) return toast.error("Lütfen dosya ve evrak adı giriniz.")
 
         setUploading(true)
-        const formData = new FormData()
-        formData.append("file", file)
-        formData.append("employeeId", employeeId.toString())
-        formData.append("title", title)
-        formData.append("category", category)
 
         try {
-            const result = await uploadEmployeeDocument(formData)
+            // Use Electron IPC for file upload
+            const arrayBuffer = await file.arrayBuffer();
+            const fileBuffer = Array.from(new Uint8Array(arrayBuffer));
+            const { ipcRenderer } = (window as any).require('electron');
+            const uploadResult = await ipcRenderer.invoke('upload-file', {
+                fileBuffer,
+                fileName: file.name,
+                subDir: 'documents'
+            });
+
+            if (!uploadResult.success) {
+                toast.error('Dosya yüklenemedi: ' + (uploadResult.error || 'Bilinmeyen hata'));
+                setUploading(false);
+                return;
+            }
+
+            const ext = file.name.includes('.') ? '.' + file.name.split('.').pop()! : '';
+            const result = await saveEmployeeDocument({
+                employeeId,
+                title,
+                category,
+                filePath: uploadResult.filePath,
+                fileName: file.name,
+                fileSize: file.size,
+                fileExt: ext,
+            });
+
             if (result.success) {
                 toast.success(result.message)
                 // Reset form
@@ -138,13 +159,14 @@ export function DocumentList({
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
     }
 
-    // Opens a new window for printing the image/pdf directly
-    const handlePrint = (filePath: string) => {
-        const printWindow = window.open(filePath, '_blank');
-        if (printWindow) {
-            printWindow.onload = () => {
-                printWindow.print();
-            };
+    // Gizli pencerede yazdir - PDF viewer acilmaz
+    function handlePrint(filePath: string) {
+        try {
+            const { ipcRenderer } = (window as any).require('electron');
+            ipcRenderer.invoke('print-file', filePath);
+        } catch {
+            const w = window.open(filePath, '_blank');
+            if (w) w.onload = () => w.print();
         }
     }
 
@@ -283,7 +305,7 @@ export function DocumentList({
                                                 <span>{formatBytes(doc.fileSize)}</span>
                                             </TableCell>
                                             <TableCell className="text-muted-foreground text-sm">
-                                                {doc.createdAt ? format(new Date(doc.createdAt), "d MMM yyyy, HH:mm", { locale: tr }) : "-"}
+                                                {doc.createdAt ? format(new Date(doc.createdAt), "dd.MM.yyyy HH:mm") : "-"}
                                             </TableCell>
                                             <TableCell className="text-right space-x-2">
                                                 <Button

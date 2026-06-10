@@ -26,6 +26,7 @@ process.on('uncaughtException', (error) => {
 let mainWindow;
 let nextProcess;
 let isQuitting = false;
+let pendingSgkCredentials = null;
 let isUpdating = false;
 const isProd = app.isPackaged;
 
@@ -56,22 +57,22 @@ function autoBackup() {
 
         // Kopya oluştur
         fs.copyFileSync(dbPath, backupPath);
-        console.log('Otomatik yedek alındı:', backupPath);
+        // mtime'i su anki zamana ayarla (copyFileSync kaynak mtime'ini kopyalayabilir)
+        const now = new Date();
+        fs.utimesSync(backupPath, now, now);
+        console.log('Otomatik yedek alindi:', backupPath);
 
-        // Yedek rotasyonu (Max 10 dosya)
+        // Yedek rotasyonu (Max 10 dosya) - dosya adindan timestamp parse et
         const files = fs.readdirSync(backupDir)
-            .filter(f => f.startsWith('auto_backup_'))
-            .map(f => ({
-                name: f,
-                time: fs.statSync(path.join(backupDir, f)).mtime.getTime()
-            }))
-            .sort((a, b) => b.time - a.time); // Yeniden eskiye
+            .filter(f => f.startsWith('auto_backup_') && f.endsWith('.db'))
+            .sort() // alfabetik = kronolojik (ISO timestamp)
+            .reverse(); // yeniden eskiye
 
         if (files.length > 10) {
             const filesToDelete = files.slice(10);
             filesToDelete.forEach(f => {
-                fs.unlinkSync(path.join(backupDir, f.name));
-                console.log('Eski yedek silindi:', f.name);
+                fs.unlinkSync(path.join(backupDir, f));
+                console.log('Eski yedek silindi:', f);
             });
         }
 
@@ -152,13 +153,15 @@ function createWindow() {
     // Load the "starting" screen briefly before the server is up
     mainWindow.loadFile(path.join(__dirname, 'loading.html'));
 
-    // Çıkış onay ve yedekleme bildirimi (GÜNCELLEME BLOKLADIĞI İÇİN GEÇİCİ OLARAK KALDIRILDI)
     mainWindow.on('close', (event) => {
-        // Otomatik yedekleme her durumda yapılsın
-        const result = autoBackup();
-        log.info('Kapatma: yedek alindi:', result ? result.backupPath : 'BASARISIZ');
         isQuitting = true;
     });
+
+    // Periyodik yedekleme: her 30 dakikada bir (server acikken de calisir)
+    setInterval(() => {
+        const r = autoBackup();
+        if (r) log.info('Periyodik yedek alindi:', r.backupPath);
+    }, 30 * 60 * 1000);
 
     mainWindow.on('closed', function () {
         mainWindow = null;
@@ -177,7 +180,7 @@ function createWindow() {
     });
 
     // DevTools ve Menü çubuğunu test için görünür yapalım
-    mainWindow.setMenuBarVisibility(true);
+    mainWindow.setMenuBarVisibility(false);
 
     // Auto-fill handling for newly opened windows
     mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -224,9 +227,28 @@ function createWindow() {
     // When a new window is fully created, inject the clipboard reading script
     mainWindow.webContents.on('did-create-window', (childWindow) => {
         childWindow.webContents.on('did-finish-load', () => {
+            // localhost veya app sayfalarında doldurma yapma
             const currentUrl = childWindow.webContents.getURL();
-            if (currentUrl.includes('sgk') || currentUrl.includes('ebildirge')) {
-                const clipText = clipboard.readText();
+            if (currentUrl.includes('localhost') || currentUrl.includes('127.0.0.1')) return;
+            const isSgkPage = (
+                currentUrl.includes('sgk.gov.tr') ||
+                currentUrl.includes('ebildirge') ||
+                currentUrl.includes('istanbul.smmmo.org.tr')
+            );
+            if (!isSgkPage) return;
+            {
+                // IPC'den gelen credentials'i kullan, yoksa clipboard'a yuksel
+                const creds = pendingSgkCredentials;
+                const clipText = creds
+                    ? [
+                        creds.username ? `Kullanıcı Adı: ${creds.username}` : '',
+                        creds.systemPassword ? `Sistem Şifresi: ${creds.systemPassword}` : '',
+                        creds.workplacePassword ? `İşyeri Şifresi: ${creds.workplacePassword}` : '',
+                        creds.code ? `Kod: ${creds.code}` : '',
+                        creds.userCode ? `Kullanıcı Kodu: ${creds.userCode}` : '',
+                      ].filter(Boolean).join('\n')
+                    : clipboard.readText();
+                pendingSgkCredentials = null;
                 if (!clipText) return;
 
                 // Full SGK Autofill Script
@@ -254,19 +276,70 @@ function createWindow() {
                                             el.dispatchEvent(new Event('change', { bubbles: true }));
                                         }
                                     }
-                                    let fc = c ? c.padStart(3, '0') : '';
+                                    function trySet(selectors, val) {
+                                        for (let sel of selectors) {
+                                            let el = document.querySelector(sel);
+                                            if (el) { setVal(el, val); return true; }
+                                        }
+                                        return false;
+                                    }
+                                    // uc = sgk_user_code (36775...) → TUM sitelerde login kullanici adi
+                                    // u  = sgk_number (cok uzun) → login icin kullanilmaz
+                                    // fc = sgk_code padded (016, 012...) → kucuk kod kutusu
+                                    // s  = sistem sifresi, w = isyeri sifresi
+                                    let fc = c ? c : '';
+                                    let loginUser = uc || u;
+
                                     if (loc.includes('EBildirgeV2')) {
-                                        let fields = document.querySelectorAll('input[type="text"]:not([type="hidden"]), input[type="password"]');
+                                        // EBildirgeV2: fields[0]=KullaniciAdi(uc), [1]=Kod(fc), [2]=SistemSifresi, [3]=IsyeriSifresi
+                                        let fields = Array.from(document.querySelectorAll(
+                                            'input[type="text"], input[type="password"]'
+                                        )).filter(el => el.type !== 'hidden');
                                         if (fields.length >= 4) {
-                                            setVal(fields[0], uc || u); setVal(fields[1], fc); setVal(fields[2], s); setVal(fields[3], w);
+                                            setVal(fields[0], loginUser);
+                                            setVal(fields[1], fc);
+                                            setVal(fields[2], s);
+                                            setVal(fields[3], w);
                                         }
                                     } else {
-                                        setVal(document.querySelector('input[name="j_username"]'), u || uc);
-                                        setVal(document.querySelector('input[name="isyeri_kodu"]'), fc);
-                                        setVal(document.querySelector('input[name="j_password"]'), s);
-                                        setVal(document.querySelector('input[name="isyeri_sifresi"]'), w);
+                                        // uyg.sgk.gov.tr: SigortaliTescil, IsKazasi, Vizite vb.
+                                        // Tam pozisyonel yaklasim: text[0]=loginUser, text[1]=fc(kod)
+                                        // pass alanlari: 2 tane varsa [0]=sistem [1]=isyeri; 1 tane varsa [0]=isyeri
+
+                                        let textInputs = Array.from(document.querySelectorAll(
+                                            'input[type="text"], input:not([type])'
+                                        )).filter(el => {
+                                            const t = (el.type || '').toLowerCase();
+                                            return !['hidden','submit','button','reset','image','checkbox','radio','password'].includes(t);
+                                        });
+                                        let passInputs = Array.from(document.querySelectorAll('input[type="password"]'));
+
+                                        // Kullanici adi: once named selector, olmassa ilk text input
+                                        let uFill = trySet(['input[name="j_username"]', 'input[id="j_username"]'], loginUser);
+                                        if (!uFill && textInputs.length > 0) {
+                                            setVal(textInputs[0], loginUser);
+                                            uFill = true;
+                                        }
+
+                                        // Kucuk kod kutusu: ikinci text input
+                                        if (textInputs.length > 1 && fc) {
+                                            setVal(textInputs[1], fc);
+                                        }
+
+                                        // Sifreler: 2 password alani -> [0]=sistem, [1]=isyeri; 1 alan -> [0]=isyeri
+                                        if (passInputs.length >= 2) {
+                                            setVal(passInputs[0], s);
+                                            setVal(passInputs[1], w);
+                                        } else if (passInputs.length === 1) {
+                                            setVal(passInputs[0], w);
+                                        }
                                     }
                                 }
+                                // Sadece kullanıcı adı ve şifre alanı olan sayfalarda doldur
+                                var usernameField = document.querySelector('input[type="text"], input[name*="user"], input[name*="User"], input[id*="user"], input[id*="User"], input[name*="tcno"], input[id*="tcno"]');
+                                var passwordField = document.querySelector('input[type="password"]');
+                                if (!usernameField || !passwordField) return; // Giriş sayfası değilse durdur
+
                                 executeFill();
                             } catch(e) { console.error('Persis fill error:', e); }
                         })();
@@ -368,13 +441,19 @@ function startNextJsServer() {
         const quotedCmd = nextCmd.includes(' ') ? `"${nextCmd}"` : nextCmd;
         const quotedArgs = args.map(arg => arg.includes(' ') ? `"${arg}"` : arg);
 
+        const uploadsDir = path.join(userDataPath, 'uploads', 'documents');
+        fs.mkdirSync(uploadsDir, { recursive: true });
+        const uploadsBase = path.join(userDataPath, 'uploads');
+
         nextProcess = spawn(quotedCmd, quotedArgs, {
             cwd: serverDir,
             env: {
                 ...cleanEnv,
                 PORT: 3000,
                 USERDATA_PATH: userDataPath,
-                RESOURCES_PATH: process.resourcesPath
+                RESOURCES_PATH: process.resourcesPath,
+                UPLOAD_DIR: uploadsDir,
+                UPLOAD_BASE: uploadsBase
             },
             shell: true // Set to true to ensure command quoting works on Windows
         });
@@ -457,6 +536,70 @@ app.on('ready', () => {
             .then(() => console.log('Session cookie cleared for fresh login'))
             .catch((error) => console.error('Failed to clear auth cookie on boot:', error));
 
+        // Intercept /uploads/ requests and serve from userData via local HTTP file server
+        const uploadsPath = path.join(app.getPath('userData'), 'uploads');
+        fs.mkdirSync(uploadsPath, { recursive: true });
+
+        // Start a local HTTP server to serve uploaded files
+        const http = require('http');
+        const fileServer = http.createServer((req, res) => {
+            try {
+                const decodedPath = decodeURIComponent(req.url.split('?')[0]);
+                // Check new location first (userData), then fallback to old location (resources/standalone/public)
+                let filePath = path.join(app.getPath('userData'), decodedPath);
+                if (!fs.existsSync(filePath)) {
+                    const oldPath = path.join(process.resourcesPath, 'standalone', 'public', decodedPath);
+                    if (fs.existsSync(oldPath)) filePath = oldPath;
+                }
+                if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+                    const ext = path.extname(filePath).toLowerCase();
+                    const mimeTypes = {
+                        '.pdf': 'application/pdf',
+                        '.png': 'image/png',
+                        '.jpg': 'image/jpeg',
+                        '.jpeg': 'image/jpeg',
+                        '.gif': 'image/gif',
+                        '.webp': 'image/webp',
+                        '.bmp': 'image/bmp'
+                    };
+                    const mime = mimeTypes[ext] || 'application/octet-stream';
+                    res.writeHead(200, {
+                        'Content-Type': mime,
+                        'Access-Control-Allow-Origin': '*',
+                        'Cache-Control': 'no-cache'
+                    });
+                    fs.createReadStream(filePath).pipe(res);
+                } else {
+                    res.writeHead(404);
+                    res.end('Not found');
+                }
+            } catch (e) {
+                res.writeHead(500);
+                res.end(e.message);
+            }
+        });
+        fileServer.listen(0, '127.0.0.1', () => {
+            global.fileServerPort = fileServer.address().port;
+            log.info(`File server started on port ${global.fileServerPort}`);
+        });
+
+        // Intercept /uploads/ requests and redirect to local file server
+        const { session: interceptSession } = require('electron');
+        interceptSession.defaultSession.webRequest.onBeforeRequest(
+            { urls: ['http://localhost:*/uploads/*'] },
+            (details, callback) => {
+                try {
+                    const url = new URL(details.url);
+                    if (url.pathname.startsWith('/uploads/') && global.fileServerPort) {
+                        const redirectURL = `http://127.0.0.1:${global.fileServerPort}${url.pathname}`;
+                        callback({ redirectURL });
+                        return;
+                    }
+                } catch (e) {}
+                callback({});
+            }
+        );
+
         createWindow();
         startNextJsServer();
 
@@ -508,9 +651,83 @@ ipcMain.handle('open-backup-folder', () => {
     require('electron').shell.openPath(backupDir);
 });
 
+// Yazdir: tam URL'yi gizli pencerede yukle, print dialog goster
+ipcMain.handle('print-file', async (_, filePath) => {
+    return new Promise((resolve) => {
+        // Relatif URL ise tam URL'ye cevir
+        let fileUrl = filePath;
+        if (!filePath.startsWith('http') && !filePath.startsWith('file://')) {
+            fileUrl = 'http://localhost:3000' + (filePath.startsWith('/') ? '' : '/') + filePath;
+        }
+
+        const printWin = new BrowserWindow({
+            show: false,
+            width: 800,
+            height: 600,
+            webPreferences: {
+                nodeIntegration: false,
+                contextIsolation: true,
+                plugins: true  // PDF plugin icin
+            }
+        });
+
+        // Pencereyi print dialog acilinca goster (dialog için visible olmasi gerekebilir)
+        printWin.loadURL(fileUrl);
+
+        let didPrint = false;
+        const doPrint = () => {
+            if (didPrint) return;
+            didPrint = true;
+            // Kisa bekleme: PDF render tamamlansin
+            setTimeout(() => {
+                printWin.webContents.print({ silent: false, printBackground: true }, (success) => {
+                    setTimeout(() => { printWin.destroy(); }, 500);
+                    resolve(success);
+                });
+            }, 800);
+        };
+
+        printWin.webContents.once('did-finish-load', doPrint);
+        printWin.webContents.once('did-fail-load', () => {
+            printWin.destroy();
+            resolve(false);
+        });
+
+        // Fallback: 5 saniye sonra hala basmadigiysa iptal
+        setTimeout(() => {
+            if (!didPrint) {
+                didPrint = true;
+                printWin.destroy();
+                resolve(false);
+            }
+        }, 5000);
+    });
+});
+
+ipcMain.handle('set-sgk-credentials', (_, credentials) => {
+    pendingSgkCredentials = credentials;
+    return true;
+});
+
+ipcMain.handle('upload-file', async (event, { fileBuffer, fileName, subDir }) => {
+    try {
+        const uploadsBase = path.join(app.getPath('userData'), 'uploads');
+        const uploadDir = path.join(uploadsBase, subDir || 'isg');
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        const timestamp = Date.now();
+        const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const filename = `${timestamp}_${safeName}`;
+        const filepath = path.join(uploadDir, filename);
+        fs.writeFileSync(filepath, Buffer.from(fileBuffer));
+        return { success: true, filePath: `/uploads/${subDir || 'isg'}/${filename}`, fileName: fileName };
+    } catch (e) {
+        return { success: false, error: e.message };
+    }
+});
+
 app.on('before-quit', () => {
-    // Guvence yedekleme - close event tetiklenmediyse de calissin
-    try { autoBackup(); } catch(e) { log.error('before-quit backup hatasi:', e); }
     isQuitting = true;
 });
 
@@ -521,7 +738,7 @@ app.on('window-all-closed', function () {
 });
 
 app.on('will-quit', () => {
-    // Next.js sürecini öldür (yedekleme artık close event'inde yapılıyor)
+    // Once server'i oldurek DB kilidi kaldir, sonra yedek al
     if (nextProcess) {
         try {
             if (process.platform === 'win32') {
@@ -533,6 +750,13 @@ app.on('will-quit', () => {
             console.error('Next.js sonlandirma hatasi:', e);
         }
         nextProcess = null;
+    }
+    // Server kapandiktan sonra guvenli backup
+    try {
+        const result = autoBackup();
+        log.info('Cikis yedegi:', result ? result.backupPath : 'BASARISIZ');
+    } catch(e) {
+        log.error('will-quit backup hatasi:', e);
     }
 });
 

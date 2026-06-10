@@ -69,21 +69,25 @@ export function ISGForm({ employees, documentTypes, fixedEmployeeId, onSuccess }
         setLoading(true)
 
         try {
-            // Upload file first
-            const formData = new FormData()
-            formData.append('file', file)
+            // Use Electron IPC for file upload
+            let filePath = '';
+            let fileType = file.type.startsWith('image/') ? 'image' : 'pdf';
 
-            const uploadRes = await fetch('/api/upload', {
-                method: 'POST',
-                body: formData,
-            })
-
-            const uploadData = await uploadRes.json()
-
-            if (!uploadData.success) {
-                toast.error(uploadData.error || "Dosya yüklenemedi.")
-                setLoading(false)
-                return
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const fileBuffer = Array.from(new Uint8Array(arrayBuffer));
+                const { ipcRenderer } = (window as any).require('electron');
+                const result = await ipcRenderer.invoke('upload-file', {
+                    fileBuffer,
+                    fileName: file.name,
+                    subDir: 'isg'
+                });
+                if (!result.success) throw new Error(result.error || 'Upload failed');
+                filePath = result.filePath;
+            } catch (err: any) {
+                toast.error('Dosya yüklenemedi: ' + err.message);
+                setLoading(false);
+                return;
             }
 
             // Create ISG record
@@ -91,8 +95,8 @@ export function ISGForm({ employees, documentTypes, fixedEmployeeId, onSuccess }
                 employeeId: parseInt(employeeId),
                 documentTypeId: parseInt(documentTypeId),
                 documentDate,
-                filePath: uploadData.filePath,
-                fileType: uploadData.fileType,
+                filePath: filePath,
+                fileType: fileType,
             })
 
             if (result.success) {

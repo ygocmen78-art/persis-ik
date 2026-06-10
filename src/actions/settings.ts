@@ -71,3 +71,62 @@ export async function saveSgkCredentials(credentials: SgkCredentials) {
         return { success: false, message: "SGK şifreleri kaydedilemedi." };
     }
 }
+
+// --- Meslek Kodları ---
+export async function getCustomOccupationCodes() {
+    const { db } = await import("@/db")
+    const { customOccupationCodes } = await import("@/db/schema")
+    return db.select().from(customOccupationCodes).orderBy(customOccupationCodes.code)
+}
+
+export async function addCustomOccupationCode(code: string, description?: string) {
+    const { db } = await import("@/db")
+    const { customOccupationCodes } = await import("@/db/schema")
+    try {
+        await db.insert(customOccupationCodes).values({ code: code.trim(), description: description?.trim() || null })
+        revalidatePath("/settings")
+        revalidatePath("/employees")
+        return { success: true }
+    } catch(e) {
+        return { success: false, message: "Kod eklenemedi." }
+    }
+}
+
+export async function deleteCustomOccupationCode(id: number) {
+    const { db } = await import("@/db")
+    const { customOccupationCodes } = await import("@/db/schema")
+    await db.delete(customOccupationCodes).where(eq(customOccupationCodes.id, id))
+    revalidatePath("/settings")
+    revalidatePath("/employees")
+    return { success: true }
+}
+
+// --- Yetkili Kullanıcı (Rapor Sorgulama için) ---
+export type AuthorizedUser = {
+    userCode: string;
+    userCodeSuffix: string;
+    password: string;
+};
+
+export async function getAuthorizedUser(): Promise<AuthorizedUser> {
+    try {
+        const result = await db.select().from(settings).where(eq(settings.key, "authorized_user")).get();
+        if (result?.value) return JSON.parse(result.value);
+        return { userCode: "", userCodeSuffix: "", password: "" };
+    } catch (e) {
+        return { userCode: "", userCodeSuffix: "", password: "" };
+    }
+}
+
+export async function saveAuthorizedUser(data: AuthorizedUser) {
+    try {
+        await db.insert(settings)
+            .values({ key: "authorized_user", value: JSON.stringify(data) })
+            .onConflictDoUpdate({ target: settings.key, set: { value: JSON.stringify(data) } });
+        revalidatePath("/settings");
+        revalidatePath("/sgk");
+        return { success: true, message: "Yetkili kullanıcı kaydedildi." };
+    } catch (e) {
+        return { success: false, message: "Kaydedilemedi." };
+    }
+}

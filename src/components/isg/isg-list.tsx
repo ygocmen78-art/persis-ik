@@ -85,7 +85,7 @@ export function ISGList({ records }: ISGListProps) {
                                     </div>
                                 </TableCell>
                                 <TableCell>
-                                    {item.expiryDate ? format(new Date(item.expiryDate), "d MMMM yyyy", { locale: tr }) : "-"}
+                                    {item.expiryDate ? format(new Date(item.expiryDate), "dd.MM.yyyy") : "-"}
                                 </TableCell>
                                 <TableCell>
                                     {isExpired ? (

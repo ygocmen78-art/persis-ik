@@ -55,7 +55,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             <div className="w-64 flex-shrink-0">
                 <Sidebar className="h-full" />
             </div>
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 flex flex-col overflow-y-auto">
                 <Header />
                 <main className={cn(
                     "flex-1 overflow-y-auto p-6 transition-all duration-500 ease-in-out",

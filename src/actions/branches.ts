@@ -14,6 +14,7 @@ export async function addBranch(data: {
     name: string; address?: string; sgk_number?: string;
     sgk_system_password?: string; sgk_workplace_password?: string;
     sgk_user_code?: string; sgk_code?: string;
+    authorized_user_code?: string; authorized_user_code_suffix?: string; authorized_user_password?: string;
 }) {
     const result = await db.insert(branches).values({
         name: data.name,
@@ -23,6 +24,9 @@ export async function addBranch(data: {
         sgk_workplace_password: data.sgk_workplace_password,
         sgk_user_code: data.sgk_user_code,
         sgk_code: data.sgk_code,
+        authorized_user_code: data.authorized_user_code,
+        authorized_user_code_suffix: data.authorized_user_code_suffix,
+        authorized_user_password: data.authorized_user_password,
     }).returning({ id: branches.id }).get()
 
     revalidatePath("/settings")
@@ -56,6 +60,7 @@ export async function updateBranch(id: number, data: {
     name: string; address?: string; sgk_number?: string;
     sgk_system_password?: string; sgk_workplace_password?: string;
     sgk_user_code?: string; sgk_code?: string;
+    authorized_user_code?: string; authorized_user_code_suffix?: string; authorized_user_password?: string;
 }) {
     try {
         await db.update(branches).set({
@@ -66,6 +71,9 @@ export async function updateBranch(id: number, data: {
             sgk_workplace_password: data.sgk_workplace_password,
             sgk_user_code: data.sgk_user_code,
             sgk_code: data.sgk_code,
+            authorized_user_code: data.authorized_user_code,
+            authorized_user_code_suffix: data.authorized_user_code_suffix,
+            authorized_user_password: data.authorized_user_password,
         }).where(eq(branches.id, id))
 
         revalidatePath("/settings")

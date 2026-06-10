@@ -25,8 +25,8 @@ export function ExcelImportDialog() {
     const handleDownloadTemplate = () => {
         const headers = ["Ad", "Soyad", "Çalışma Yeri (Şube)", "Şirket (SGK)", "TC", "Telefon", "Departman", "SGK Meslek", "Maaş", "IBAN", "İşe Giriş"];
         const data = [
-            ["Ahmet", "Yılmaz", "Fabrika", "Zofunlar A.Ş.", "11111111111", "5551234567", "Üretim", "İşçi", 30000, "TR1234...", "2024-01-01"],
-            ["Ayşe", "Demir", "Ofis", "Zet Lojistik", "22222222222", "5559876543", "Satış", "Temsilci", 25000, "TR5678...", "2024-02-15"]
+            ["Ahmet", "Yılmaz", "Fabrika", "Örnek Şirket A.Ş.", "11111111111", "5551234567", "Üretim", "İşçi", 30000, "TR1234...", "2024-01-01"],
+            ["Ayşe", "Demir", "Ofis", "Örnek Lojistik", "22222222222", "5559876543", "Satış", "Temsilci", 25000, "TR5678...", "2024-02-15"]
         ];
 
         const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);

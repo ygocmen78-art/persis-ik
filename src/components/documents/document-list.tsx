@@ -227,24 +227,12 @@ export function DocumentList({ data, branches }: DocumentListProps) {
     function handlePrint(doc: Document) {
         const type = doc.type?.toLowerCase()
         if (type === 'pdf' || type === 'jpg' || type === 'jpeg' || type === 'png') {
-            const iframe = document.createElement('iframe');
-            iframe.style.display = 'none';
-            iframe.src = doc.filePath;
-            document.body.appendChild(iframe);
-
-            iframe.onload = () => {
-                try {
-                    iframe.contentWindow?.focus();
-                    iframe.contentWindow?.print();
-                } catch (e) {
-                    console.error("Print failed", e);
-                    toast.error("Yazdırma penceresi açılamadı.");
-                } finally {
-                    // Clean up iframe after a delay to ensure print dialog initiated
-                    setTimeout(() => {
-                        document.body.removeChild(iframe);
-                    }, 5000); // 5 seconds safe delay
-                }
+            try {
+                const { ipcRenderer } = (window as any).require('electron');
+                ipcRenderer.invoke('print-file', doc.filePath);
+            } catch {
+                const w = window.open(doc.filePath, '_blank');
+                if (w) w.onload = () => w.print();
             }
         } else {
             toast.info("Bu dosya formatı doğrudan yazdırılamaz. Lütfen indirip yazdırınız.")

@@ -1,6 +1,13 @@
 
 import { differenceInYears, differenceInDays } from "date-fns"
 
+/**
+ * 4857 Sayılı İş Kanunu Madde 53
+ * - 1-5 yıl kıdem  : 14 iş günü
+ * - 6-15 yıl kıdem : 20 iş günü
+ * - 16+ yıl kıdem  : 26 iş günü
+ * - 18 yaşından küçük VEYA 50 yaşından büyük çalışanlar: her yıl için minimum 20 gün
+ */
 export function calculateAnnualLeaveEntitlement(birthDate: Date, startDate: Date): number {
     const today = new Date()
     const totalYearsOfService = differenceInYears(today, startDate)
@@ -10,32 +17,55 @@ export function calculateAnnualLeaveEntitlement(birthDate: Date, startDate: Date
         return 0
     }
 
+    // 18 yaş altı veya 50 yaş üstü ise her yıl en az 20 gün (İş Kanunu Madde 53/4)
+    const ageQualifiesForMinimum20 = age < 18 || age >= 50
+
     let totalEarnedDays = 0
 
-    // Calculate total earned leave from hire date to today
-    // Turkish Labor Law:
-    // - Years 1-5: 14 days per year
-    // - Years 6-15: 20 days per year
-    // - Years 16+: 26 days per year
-
     for (let year = 1; year <= totalYearsOfService; year++) {
+        let daysForYear: number
         if (year <= 5) {
-            totalEarnedDays += 14
+            daysForYear = 14
         } else if (year <= 15) {
-            totalEarnedDays += 20
+            daysForYear = 20
         } else {
-            totalEarnedDays += 26
+            daysForYear = 26
         }
-    }
 
-    // Special rule for age: <18 or >=50 must get at least 20 days per year
-    // This is complex to apply retroactively, so we'll apply it to current year only
-    // If current year entitlement is less than 20 and age qualifies, adjust
-    const currentYearEntitlement = totalYearsOfService <= 5 ? 14 : totalYearsOfService <= 15 ? 20 : 26
-    if ((age < 18 || age >= 50) && currentYearEntitlement < 20) {
-        // Add the difference for the current year
-        totalEarnedDays += (20 - currentYearEntitlement)
+        // Yaş koşulu varsa minimum 20 gün garantisi uygula
+        if (ageQualifiesForMinimum20) {
+            daysForYear = Math.max(daysForYear, 20)
+        }
+
+        totalEarnedDays += daysForYear
     }
 
     return totalEarnedDays
+}
+
+/**
+ * Mevcut yıl için izin hakkını döner (gösterim amaçlı)
+ */
+export function calculateCurrentYearEntitlement(birthDate: Date, startDate: Date): number {
+    const today = new Date()
+    const yearsOfService = differenceInYears(today, startDate)
+    const age = differenceInYears(today, birthDate)
+
+    if (yearsOfService < 1) return 0
+
+    let days: number
+    if (yearsOfService <= 5) {
+        days = 14
+    } else if (yearsOfService <= 15) {
+        days = 20
+    } else {
+        days = 26
+    }
+
+    // 18 yaş altı veya 50 yaş üstü: minimum 20 gün
+    if (age < 18 || age >= 50) {
+        days = Math.max(days, 20)
+    }
+
+    return days
 }

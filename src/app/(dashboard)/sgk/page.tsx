@@ -53,6 +53,16 @@ const SGK_LINKS = [
         fields: ["Kullanıcı Kodu", "İşyeri Şifresi"],
     },
     {
+        id: "isveren-sistemi",
+        title: "İşveren Sistemi",
+        description: "İşveren sistemi giriş ve işlemler",
+        url: "https://uyg.sgk.gov.tr/IsverenSistemi",
+        icon: Shield,
+        color: "bg-indigo-50 border-indigo-200 dark:bg-indigo-950 dark:border-indigo-800",
+        iconColor: "text-indigo-600 dark:text-indigo-400",
+        fields: ["Kullanıcı Kodu", "İşyeri Şifresi"],
+    },
+    {
         id: "rapor-sorgulama",
         title: "Rapor Sorgulama",
         description: "Çalışılmadığına Dair Bildirim Giriş Sistemi (Vizite)",
@@ -69,6 +79,7 @@ export default function SgkPage() {
     const [selectedBranchId, setSelectedBranchId] = useState<number | null>(null);
     const [showPasswords, setShowPasswords] = useState(false);
     const [loading, setLoading] = useState(true);
+    // authorized user is derived from selected branch
 
     useEffect(() => {
         getBranches().then((data) => {
@@ -79,6 +90,7 @@ export default function SgkPage() {
             }
             setLoading(false);
         });
+    // authorized user is now per-branch, loaded from branch data
     }, []);
 
     const credentials = useMemo(() => {
@@ -109,25 +121,39 @@ export default function SgkPage() {
             return;
         }
 
-        // Copy credentials summary to clipboard
+        // Şifreleri clipboard'a yaz (formatlanmış metin olarak)
         const credLines: string[] = [];
-        if (credentials.username) credLines.push(`Kullanıcı Adı: ${credentials.username}`);
-        if (credentials.systemPassword) credLines.push(`Sistem Şifresi: ${credentials.systemPassword}`);
-        if (credentials.workplacePassword) credLines.push(`İşyeri Şifresi: ${credentials.workplacePassword}`);
-        if (credentials.code) credLines.push(`Kod: ${credentials.code}`);
-        if (credentials.userCode) credLines.push(`Kullanıcı Kodu: ${credentials.userCode}`);
-        
-        const credText = credLines.join("\n");
-
-        try {
-            await navigator.clipboard.writeText(credText);
-            toast.success("Şifreler panoya kopyalandı, sayfa açılıyor...");
-        } catch {
-            // Still open even if clipboard fails
+        // For rapor-sorgulama and isveren-sistemi, use authorized user if available
+        // Get authorized user from selected branch
+        const selectedBranch = branches.find(b => b.id === selectedBranchId)
+        const branchAuthUser = selectedBranch?.authorized_user_code ? {
+            userCode: selectedBranch.authorized_user_code,
+            userCodeSuffix: selectedBranch.authorized_user_code_suffix || "",
+            password: selectedBranch.authorized_user_password || "",
+        } : null
+        const useAuthorized = link.id === "rapor-sorgulama" && branchAuthUser?.userCode;
+        if (useAuthorized) {
+            credLines.push(`Kullanıcı Kodu: ${branchAuthUser!.userCode}`);
+            if (branchAuthUser!.userCodeSuffix) credLines.push(`Kod: ${branchAuthUser!.userCodeSuffix}`);
+            if (branchAuthUser!.password) credLines.push(`İşyeri Şifresi: ${branchAuthUser!.password}`);
+        } else {
+            if (credentials.username) credLines.push(`Kullanıcı Adı: ${credentials.username}`);
+            if (credentials.systemPassword) credLines.push(`Sistem Şifresi: ${credentials.systemPassword}`);
+            if (credentials.workplacePassword) credLines.push(`İşyeri Şifresi: ${credentials.workplacePassword}`);
+            if (credentials.code) credLines.push(`Kod: ${credentials.code}`);
+            if (credentials.userCode) credLines.push(`Kullanıcı Kodu: ${credentials.userCode}`);
         }
 
-        // Open the external site in a new window
-        window.open(link.url, "_blank", "noopener,noreferrer");
+        try {
+            await navigator.clipboard.writeText(credLines.join("\n"));
+            toast.success("Şifreler kopyalandı, sayfa açılıyor...");
+        } catch {
+            // clipboard izni yoksa sessizce devam et
+        }
+
+        // Clipboard'un yazılması için 300ms bekle, sonra pencereyi aç
+        await new Promise(resolve => setTimeout(resolve, 300));
+        window.open(link.url, "_blank");
     };
 
     const hasCredentials = credentials && credentials.username;

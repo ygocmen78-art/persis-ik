@@ -90,11 +90,13 @@ export function EmployeeISGHistory({
     }
 
     const handlePrint = (record: ISGRecord) => {
-        if (record.filePath) {
-            const printWindow = window.open(record.filePath, '_blank')
-            printWindow?.addEventListener('load', () => {
-                printWindow.print()
-            })
+        if (!record.filePath) return;
+        try {
+            const { ipcRenderer } = (window as any).require('electron');
+            ipcRenderer.invoke('print-file', record.filePath);
+        } catch {
+            const w = window.open(record.filePath, '_blank');
+            if (w) w.onload = () => w.print();
         }
     }
 
@@ -205,14 +207,14 @@ export function EmployeeISGHistory({
                                         <div className="flex items-center gap-3 text-xs text-muted-foreground font-medium">
                                             <span className="flex items-center gap-1">
                                                 <Calendar className="h-3 w-3" />
-                                                Veriliş: {record.documentDate ? format(new Date(record.documentDate), "d MMMM yyyy", { locale: tr }) : "-"}
+                                                Veriliş: {record.documentDate ? format(new Date(record.documentDate), "dd.MM.yyyy") : "-"}
                                             </span>
                                             <span className={cn(
                                                 "flex items-center gap-1",
                                                 isExpired ? "text-red-600 font-bold" : isExpiringSoon ? "text-amber-600 font-bold" : ""
                                             )}>
                                                 <AlertCircle className="h-3 w-3" />
-                                                Geçerlilik: {record.expiryDate ? format(new Date(record.expiryDate), "d MMMM yyyy", { locale: tr }) : "-"}
+                                                Geçerlilik: {record.expiryDate ? format(new Date(record.expiryDate), "dd.MM.yyyy") : "-"}
                                             </span>
                                         </div>
                                     </div>

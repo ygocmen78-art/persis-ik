@@ -36,7 +36,7 @@ const styles = StyleSheet.create({
 })
 
 export const LeavePdfDocument = ({ data }: { data: any }) => {
-    const { leave, employee } = data
+    const { leave, employee, companyName } = data
 
     const getCheckbox = (type: string, targetType: string, label: string) => {
         let checked = false
@@ -134,7 +134,7 @@ export const LeavePdfDocument = ({ data }: { data: any }) => {
                     </View>
                     <View style={styles.signatureBlock}>
                         <Text style={styles.signatureTitle}>ONAY (İnsan Kaynakları)</Text>
-                        <Text style={styles.signatureName}>ZOFUNLAR HAZIR BETON{'\n'}MAD.İNŞ.MALZ.SAN.VE{'\n'}TİC.LTD.ŞTİ.</Text>
+                        <Text style={styles.signatureName}>{companyName || 'Şirket Adı'}</Text>
                         <Text style={styles.signatureLabel}>Kaşe/İmza</Text>
                     </View>
                 </View>

@@ -21,6 +21,9 @@ import { LeaveHistory } from "@/components/leave/leave-history"
 import { getISGRecords } from "@/actions/isg"
 import { getDocumentTypes as getISGDocumentTypes } from "@/actions/isg-document-types"
 import { EmployeeISGHistory } from "@/components/isg/employee-isg-history"
+import { RehireDialog } from "@/components/employees/rehire-dialog"
+import { EmploymentHistoryCard } from "@/components/employees/employment-history-card"
+import { getEmploymentHistory } from "@/actions/employment-history"
 
 // Force dynamic rendering - no caching
 export const dynamic = 'force-dynamic'
@@ -33,7 +36,7 @@ interface EmployeeDetailPageProps {
 
 export default async function EmployeeDetailPage({ params }: EmployeeDetailPageProps) {
     const { employeeId } = await params
-    const [employee, branches, employeeLeaves, positions, employeeGarnishments, departments, employeeDocuments, documentCategories, employeeISGRecords, isgDocumentTypes] = await Promise.all([
+    const [employee, branches, employeeLeaves, positions, employeeGarnishments, departments, employeeDocuments, documentCategories, employeeISGRecords, isgDocumentTypes, employmentHistoryRecords] = await Promise.all([
         getEmployee(parseInt(employeeId)),
         getBranches(),
         getEmployeeLeaves(parseInt(employeeId)),
@@ -43,7 +46,8 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
         getEmployeeDocuments(parseInt(employeeId)),
         getDocumentCategories(),
         getISGRecords(parseInt(employeeId)),
-        getISGDocumentTypes()
+        getISGDocumentTypes(),
+        getEmploymentHistory(parseInt(employeeId))
     ])
 
     let availableAnnualLeave = 0
@@ -124,7 +128,7 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
                                         <CardTitle className="text-red-800">Çıkış Bilgileri</CardTitle>
                                     </div>
                                     <div className="text-sm font-medium text-red-700">
-                                        {employee.terminationDate && format(new Date(employee.terminationDate), "d MMMM yyyy", { locale: tr })}
+                                        {employee.terminationDate && format(new Date(employee.terminationDate), "dd.MM.yyyy")}
                                     </div>
                                 </div>
                             </CardHeader>
@@ -139,8 +143,19 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
                                         <p className="text-sm mt-1">{employee.terminationReason || "Belirtilmedi"}</p>
                                     </div>
                                 </div>
+                                <div className="mt-3">
+                                    <RehireDialog
+                                        employeeId={employee.id}
+                                        employeeName={`${employee.firstName} ${employee.lastName}`}
+                                        branches={branches}
+                                        existingDepartments={departments}
+                                    />
+                                </div>
                             </CardContent>
                         </Card>
+                    )}
+                    {employmentHistoryRecords.length > 0 && (
+                        <EmploymentHistoryCard records={employmentHistoryRecords} />
                     )}
                     <div className="grid gap-4 md:grid-cols-2">
                         <Card className="col-span-1">
@@ -198,7 +213,7 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
                                                     </p>
                                                     {garnishment.notificationDate && (
                                                         <p className="text-xs text-muted-foreground">
-                                                            Teslim Tarihi: {format(new Date(garnishment.notificationDate), "dd MMMM yyyy", { locale: tr })}
+                                                            Teslim Tarihi: {format(new Date(garnishment.notificationDate), "dd.MM.yyyy")}
                                                         </p>
                                                     )}
                                                 </div>

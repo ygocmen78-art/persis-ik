@@ -14,6 +14,7 @@ import {
     FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
     Select,
     SelectContent,
@@ -67,6 +68,11 @@ const employeeFormSchema = z.object({
     iban: z.string().optional(),
     besStatus: z.string().optional(),
     leaveCarryover: z.string().optional(),
+    ehliyetClass: z.string().optional(),
+    ehliyetExpiry: z.string().optional(),
+    srcExpiry: z.string().optional(),
+    psikoteknikExpiry: z.string().optional(),
+    employmentStatus: z.string().optional(),
 })
 
 type EmployeeFormValues = z.infer<typeof employeeFormSchema>
@@ -108,6 +114,11 @@ export function EmployeeForm({
             birthDate: initialData.birthDate ? new Date(initialData.birthDate) : undefined,
             startDate: initialData.startDate ? new Date(initialData.startDate) : undefined,
             leaveCarryover: initialData.leaveCarryover?.toString() || "0",
+            ehliyetClass: initialData.ehliyetClass || "",
+            ehliyetExpiry: initialData.ehliyetExpiry || "",
+            srcExpiry: initialData.srcExpiry || "",
+            psikoteknikExpiry: initialData.psikoteknikExpiry || "",
+            employmentStatus: initialData.employmentStatus || "Daimi",
         } : {
             firstName: "",
             lastName: "",
@@ -120,6 +131,11 @@ export function EmployeeForm({
             iban: "",
             besStatus: "auto",
             gender: "male",
+            ehliyetClass: "",
+            ehliyetExpiry: "",
+            srcExpiry: "",
+            psikoteknikExpiry: "",
+            employmentStatus: "Daimi",
         },
     })
 
@@ -318,7 +334,7 @@ export function EmployeeForm({
                                     render={({ field }) => (
                                         <FormItem className="flex flex-col">
                                             <FormLabel>Departman</FormLabel>
-                                            {departmentMode === "select" && !(!existingDepartments.includes(field.value) && field.value !== "") ? (
+                                            {departmentMode === "select" ? (
                                                 <div className="flex gap-2">
                                                     <Select
                                                         value={existingDepartments.includes(field.value) ? field.value : ""}
@@ -499,6 +515,87 @@ export function EmployeeForm({
                                 )}
                             />
 
+                        </div>
+
+                        {/* İstihdam Durumu */}
+                        <div className="border-t pt-4">
+                            <h3 className="text-lg font-medium mb-4">İstihdam Durumu</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <FormField
+                                    control={form.control}
+                                    name="employmentStatus"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>İstihdam Türü</FormLabel>
+                                            <Select onValueChange={field.onChange} value={field.value || "Daimi"}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Seçiniz" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {[
+                                                        "Daimi",
+                                                        "Mevsimlik",
+                                                        "Geçici",
+                                                        "Full-Time",
+                                                        "Part-Time",
+                                                        "Eski Hükümlü",
+                                                        "Hükümlü",
+                                                        "Özürlü",
+                                                        "Ödünç Çalışan",
+                                                        "Terör Mağduru",
+                                                        "Stajyer - Çırak",
+                                                        "Taşı İşverene Ait Çalışan",
+                                                        "Kendi Adıma ve Hesabıma",
+                                                        "Diğer",
+                                                    ].map(opt => (
+                                                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Ehliyet / SRC / Psikoteknik */}
+                        <div className="col-span-2">
+                          <h3 className="text-sm font-semibold text-gray-700 border-b pb-2 mb-3 mt-2">
+                            Sürücü Belgeleri
+                          </h3>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 col-span-2">
+                          <div>
+                            <Label htmlFor="ehliyetClass">Ehliyet Sınıfı</Label>
+                            <Select
+                              value={form.watch("ehliyetClass") || ""}
+                              onValueChange={(val) => form.setValue("ehliyetClass", val)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Sınıf seçin" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {["B", "C", "D", "E", "B+E", "C+E", "D+E"].map(c => (
+                                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label htmlFor="ehliyetExpiry">Ehliyet Bitiş Tarihi</Label>
+                            <Input type="date" {...form.register("ehliyetExpiry")} />
+                          </div>
+                          <div>
+                            <Label htmlFor="srcExpiry">SRC Bitiş Tarihi</Label>
+                            <Input type="date" {...form.register("srcExpiry")} />
+                          </div>
+                          <div>
+                            <Label htmlFor="psikoteknikExpiry">Psikoteknik Bitiş Tarihi</Label>
+                            <Input type="date" {...form.register("psikoteknikExpiry")} />
+                          </div>
                         </div>
 
                         <div className="flex justify-end space-x-2 pt-6">

@@ -2,40 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { writeFile, mkdir } from 'fs/promises'
 import { existsSync } from 'fs'
 import path from 'path'
-import { PDFDocument } from 'pdf-lib'
-import sharp from 'sharp'
-
-async function generatePDFThumbnail(pdfBuffer: Buffer, outputPath: string): Promise<void> {
-    try {
-        // Load PDF
-        const pdfDoc = await PDFDocument.load(pdfBuffer)
-        const pages = pdfDoc.getPages()
-
-        if (pages.length === 0) {
-            throw new Error('PDF has no pages')
-        }
-
-        // Get first page
-        const firstPage = pages[0]
-        const { width, height } = firstPage.getSize()
-
-        // Create a new PDF with just the first page
-        const singlePagePdf = await PDFDocument.create()
-        const [copiedPage] = await singlePagePdf.copyPages(pdfDoc, [0])
-        singlePagePdf.addPage(copiedPage)
-
-        // Save as bytes
-        const pdfBytes = await singlePagePdf.save()
-
-        // For now, we'll save the PDF path and use iframe for preview
-        // True image conversion would require pdf2pic or similar, which needs external dependencies
-        // This is a simplified approach - we'll use the PDF itself
-
-    } catch (error) {
-        console.error('PDF thumbnail generation error:', error)
-        throw error
-    }
-}
 
 export async function POST(request: NextRequest) {
     try {
@@ -53,7 +19,12 @@ export async function POST(request: NextRequest) {
         }
 
         // Create uploads directory if it doesn't exist
-        const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'isg')
+        // Use UPLOAD_BASE env var (set by Electron main process) or fallback for dev
+        console.log('[upload] UPLOAD_BASE:', process.env.UPLOAD_BASE)
+        console.log('[upload] process.cwd():', process.cwd())
+        const uploadsDir = process.env.UPLOAD_BASE
+            ? path.join(process.env.UPLOAD_BASE, 'isg')
+            : path.join(process.cwd(), 'public', 'uploads', 'isg')
         if (!existsSync(uploadsDir)) {
             await mkdir(uploadsDir, { recursive: true })
         }
