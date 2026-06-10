@@ -856,7 +856,13 @@ autoUpdater.on('update-downloaded', (info) => {
     }
     setTimeout(() => {
         if (updateWindow && !updateWindow.isDestroyed()) updateWindow.destroy();
-        dialog.showMessageBox({
+        // Ana pencereyi öne getir, dialog arkada kalmasın
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.show();
+            mainWindow.focus();
+        }
+        const parentWin = (mainWindow && !mainWindow.isDestroyed()) ? mainWindow : null;
+        dialog.showMessageBox(parentWin, {
             type: 'info',
             title: 'Güncelleme Hazır',
             message: `v${info.version} başarıyla indirildi.`,
@@ -913,6 +919,9 @@ autoUpdater.on('update-downloaded', (info) => {
 autoUpdater.on('error', (err) => {
     log.error('Güncelleme hatası:', err);
     if (updateWindow && !updateWindow.isDestroyed()) updateWindow.destroy();
+    // Hata detayını göster (geliştirme amaçlı, sessiz hata yerine)
+    const errMsg = err ? (err.message || err.toString()) : 'Bilinmeyen hata';
+    log.error('Güncelleme hata detayı:', errMsg);
 });
 
 
