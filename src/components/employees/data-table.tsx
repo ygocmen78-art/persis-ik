@@ -5,8 +5,8 @@ import {
     ColumnDef,
     flexRender,
     getCoreRowModel,
-
     getFilteredRowModel,
+    getPaginationRowModel,
     useReactTable,
 } from "@tanstack/react-table"
 
@@ -18,7 +18,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
-import { Trash2 } from "lucide-react"
+import { Trash2, ChevronLeft, ChevronRight } from "lucide-react"
 import { deleteEmployees } from "@/actions/employees"
 import { toast } from "sonner"
 import {
@@ -33,13 +33,12 @@ import {
 } from "@/components/ui/alert-dialog"
 
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface DataTableProps<TData, TValue> {
     columns: ColumnDef<TData, TValue>[]
     data: TData[]
     onFilteredRowCountChange?: (count: number) => void
-    onDeleteSelected?: (ids: number[]) => Promise<void>
     searchQuery?: string
     onSearchChange?: (value: string) => void
 }
@@ -51,7 +50,6 @@ export function DataTable<TData, TValue>({
     searchQuery,
     onSearchChange,
 }: DataTableProps<TData, TValue>) {
-    // If props are provided, use them. Otherwise, use local state (though we intend to use controlled).
     const isControlled = searchQuery !== undefined && onSearchChange !== undefined
     const [localGlobalFilter, setLocalGlobalFilter] = React.useState("")
 
@@ -60,18 +58,23 @@ export function DataTable<TData, TValue>({
 
     const [rowSelection, setRowSelection] = React.useState({})
     const [showBulkDeleteDialog, setShowBulkDeleteDialog] = React.useState(false)
+    const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 10 })
 
     const table = useReactTable({
         data,
         columns,
         getCoreRowModel: getCoreRowModel(),
-
         getFilteredRowModel: getFilteredRowModel(),
+        getPaginationRowModel: getPaginationRowModel(),
         onRowSelectionChange: setRowSelection,
+        onPaginationChange: setPagination,
         state: {
             rowSelection,
+            pagination,
+            globalFilter,
         },
         enableRowSelection: true,
+        manualPagination: false,
     })
 
     React.useEffect(() => {
@@ -97,8 +100,15 @@ export function DataTable<TData, TValue>({
     }
 
     return (
-        <div className="space-y-4">
-            <div className="flex items-center justify-end py-2 h-[52px]">
+        <div className="space-y-3">
+            <div className="flex items-center justify-between py-2 min-h-[44px]">
+                <div className="text-sm text-slate-500">
+                    {table.getFilteredSelectedRowModel().rows.length > 0 && (
+                        <span className="text-primary font-medium">
+                            {table.getFilteredSelectedRowModel().rows.length} satır seçildi
+                        </span>
+                    )}
+                </div>
                 {table.getFilteredSelectedRowModel().rows.length > 0 && (
                     <Button
                         variant="destructive"
@@ -110,14 +120,15 @@ export function DataTable<TData, TValue>({
                     </Button>
                 )}
             </div>
-            <div className="rounded-md border bg-card text-card-foreground">
+
+            <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
                 <Table>
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
-                            <TableRow key={headerGroup.id}>
+                            <TableRow key={headerGroup.id} className="bg-slate-50 hover:bg-slate-50">
                                 {headerGroup.headers.map((header) => {
                                     return (
-                                        <TableHead key={header.id}>
+                                        <TableHead key={header.id} className="text-slate-600 font-semibold text-xs uppercase tracking-wide">
                                             {header.isPlaceholder
                                                 ? null
                                                 : flexRender(
@@ -137,19 +148,17 @@ export function DataTable<TData, TValue>({
                                     key={row.id}
                                     data-state={row.getIsSelected() && "selected"}
                                     onClick={(e) => {
-                                        // Prevent row selection if clicking button actions
                                         if ((e.target as HTMLElement).closest('button')) return;
                                         row.toggleSelected(!row.getIsSelected())
                                     }}
                                     onDoubleClick={(e) => {
-                                        // Prevent navigation if clicking checkbox or actions
                                         if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('[role="checkbox"]')) return;
                                         window.location.href = `/employees/${(row.original as any).id}`
                                     }}
-                                    className="cursor-pointer hover:bg-muted/50 text-foreground"
+                                    className="cursor-pointer hover:bg-blue-50/60 text-slate-700 transition-colors"
                                 >
                                     {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id}>
+                                        <TableCell key={cell.id} className="py-3">
                                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                         </TableCell>
                                     ))}
@@ -157,7 +166,7 @@ export function DataTable<TData, TValue>({
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={columns.length} className="h-24 text-center">
+                                <TableCell colSpan={columns.length} className="h-32 text-center text-slate-400">
                                     Sonuç bulunamadı.
                                 </TableCell>
                             </TableRow>
@@ -165,11 +174,56 @@ export function DataTable<TData, TValue>({
                     </TableBody>
                 </Table>
             </div>
-            <div className="flex items-center justify-end space-x-2 py-4">
-                <div className="flex-1 text-sm text-muted-foreground">
-                    {table.getFilteredSelectedRowModel().rows.length} / {table.getFilteredRowModel().rows.length} satır seçildi.
+
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-2">
+                <div className="text-sm text-slate-500">
+                    Toplam <span className="font-semibold text-slate-700">{table.getFilteredRowModel().rows.length}</span> kayıt
+                    {table.getPageCount() > 1 && (
+                        <span className="ml-1">— Sayfa {table.getState().pagination.pageIndex + 1} / {table.getPageCount()}</span>
+                    )}
                 </div>
 
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                        <span>Sayfa başı</span>
+                        <Select
+                            value={table.getState().pagination.pageSize.toString()}
+                            onValueChange={(value) => table.setPageSize(Number(value))}
+                        >
+                            <SelectTrigger className="h-8 w-[70px] bg-white border-slate-200">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {[10, 20, 50, 100].map((size) => (
+                                    <SelectItem key={size} value={size.toString()}>
+                                        {size}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                        <Button
+                            variant="outline"
+                            size="icon-sm"
+                            onClick={() => table.previousPage()}
+                            disabled={!table.getCanPreviousPage()}
+                            className="border-slate-200"
+                        >
+                            <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="icon-sm"
+                            onClick={() => table.nextPage()}
+                            disabled={!table.getCanNextPage()}
+                            className="border-slate-200"
+                        >
+                            <ChevronRight className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
             </div>
 
             <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>

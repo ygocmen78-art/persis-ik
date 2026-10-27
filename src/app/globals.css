@@ -49,47 +49,47 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(0.985 0.01 285);
-  --foreground: oklch(0.13 0.02 285);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.13 0.02 285);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.13 0.02 285);
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
 
-  /* Violet Primary */
-  --primary: oklch(0.55 0.22 280);
-  --primary-foreground: oklch(0.98 0 0);
+  /* Modern Blue Primary */
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
 
-  --secondary: oklch(0.95 0.03 285);
-  --secondary-foreground: oklch(0.35 0.1 280);
+  --secondary: #eff6ff;
+  --secondary-foreground: #1e40af;
 
-  --muted: oklch(0.96 0.01 285);
-  --muted-foreground: oklch(0.5 0.04 285);
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
 
-  --accent: oklch(0.94 0.04 280);
-  --accent-foreground: oklch(0.35 0.1 280);
+  --accent: #e0f2fe;
+  --accent-foreground: #0369a1;
 
-  --destructive: oklch(0.6 0.2 20);
-  --destructive-foreground: oklch(0.98 0 0);
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
 
-  --border: oklch(0.92 0.01 285);
-  --input: oklch(0.92 0.01 285);
-  --ring: oklch(0.55 0.22 280);
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #3b82f6;
 
-  --chart-1: oklch(0.55 0.22 280);
-  --chart-2: oklch(0.65 0.18 180);
-  --chart-3: oklch(0.6 0.2 320);
-  --chart-4: oklch(0.8 0.15 85);
-  --chart-5: oklch(0.7 0.15 60);
+  --chart-1: #2563eb;
+  --chart-2: #0ea5e9;
+  --chart-3: #22c55e;
+  --chart-4: #f59e0b;
+  --chart-5: #ef4444;
 
-  --sidebar: oklch(0.99 0 0);
-  --sidebar-foreground: oklch(0.13 0.02 285);
-  --sidebar-primary: oklch(0.55 0.22 280);
-  --sidebar-primary-foreground: oklch(0.98 0 0);
-  --sidebar-accent: oklch(0.96 0.02 285);
-  --sidebar-accent-foreground: oklch(0.55 0.22 280);
-  --sidebar-border: oklch(0.92 0.01 285);
-  --sidebar-ring: oklch(0.55 0.22 280);
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0f172a;
+  --sidebar-primary: #2563eb;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eff6ff;
+  --sidebar-accent-foreground: #2563eb;
+  --sidebar-border: #e2e8f0;
+  --sidebar-ring: #3b82f6;
 }
 
 /* Force light theme inside dialogs regardless of root theme */

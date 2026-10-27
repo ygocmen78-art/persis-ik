@@ -81,12 +81,14 @@ export function EmployeeForm({
     branches,
     initialData,
     existingPositions = [],
-    existingDepartments = []
+    existingDepartments = [],
+    activeTab = "all"
 }: {
     branches: Branch[]
     initialData?: any
     existingPositions?: string[]
     existingDepartments?: string[]
+    activeTab?: "all" | "personal" | "job" | "documents"
 }) {
     const router = useRouter()
     const [age, setAge] = useState<number | null>(null)
@@ -197,18 +199,18 @@ export function EmployeeForm({
         }
     }
 
-    return (
-        <Card className="max-w-4xl mx-auto">
-            <CardHeader>
-                <CardTitle>Personel Bilgileri</CardTitle>
-                <CardDescription>Tüm alanları eksiksiz doldurunuz.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+    const showSection = (section: "personal" | "job" | "documents") => {
+        return activeTab === "all" || activeTab === section
+    }
 
-                        {/* Kişisel Bilgiler */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    return (
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+
+                {showSection("personal") && (
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wide border-b pb-2">Kişisel Bilgiler</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <FormField
                                 control={form.control}
                                 name="firstName"
@@ -242,9 +244,6 @@ export function EmployeeForm({
                                     </FormItem>
                                 )}
                             />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <FormField
                                 control={form.control}
                                 name="phone"
@@ -252,6 +251,17 @@ export function EmployeeForm({
                                     <FormItem>
                                         <FormLabel>Telefon</FormLabel>
                                         <FormControl><Input placeholder="0555 555 55 55" {...field} /></FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="email"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>E-posta</FormLabel>
+                                        <FormControl><Input placeholder="ornek@mail.com" {...field} /></FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -295,152 +305,149 @@ export function EmployeeForm({
                                     </FormItem>
                                 )}
                             />
+                            <FormField
+                                control={form.control}
+                                name="iban"
+                                render={({ field }) => (
+                                    <FormItem className="md:col-span-2">
+                                        <FormLabel>IBAN</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="TR..." {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                         </div>
+                    </div>
+                )}
 
-                        <div className="border-t pt-4">
-                            <h3 className="text-lg font-medium mb-4">Şirket & Pozisyon Bilgileri</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <FormField
-                                    control={form.control}
-                                    name="sgkBranchId"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Şube / Firma (SGK)</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Şube seçin" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    {branches
-                                                        .filter(b => b.sgk_number && b.sgk_number.length > 0)
-                                                        .map(branch => (
-                                                            <SelectItem key={branch.id} value={branch.id.toString()}>
-                                                                {branch.name}
-                                                            </SelectItem>
-                                                        ))
-                                                    }
-                                                </SelectContent>
-                                            </Select>
-                                            <FormDescription className="text-xs">Sadece SGK numarası girilmiş resmi şubeler listelenir.</FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="department"
-                                    render={({ field }) => (
-                                        <FormItem className="flex flex-col">
-                                            <FormLabel>Departman</FormLabel>
-                                            {departmentMode === "select" ? (
-                                                <div className="flex gap-2">
-                                                    <Select
-                                                        value={existingDepartments.includes(field.value) ? field.value : ""}
-                                                        onValueChange={(value) => {
-                                                            if (value === "__new__") {
-                                                                setDepartmentMode("input")
-                                                                field.onChange("")
-                                                            } else {
-                                                                field.onChange(value)
-                                                            }
-                                                        }}
-                                                    >
-                                                        <FormControl>
-                                                            <SelectTrigger>
-                                                                <SelectValue placeholder="Departman seçin..." />
-                                                            </SelectTrigger>
-                                                        </FormControl>
-                                                        <SelectContent>
-                                                            {existingDepartments.map((dept) => (
-                                                                <SelectItem key={dept} value={dept}>
-                                                                    {dept}
-                                                                </SelectItem>
-                                                            ))}
-                                                            <SelectItem value="__new__" className="font-semibold text-primary">
-                                                                + Yeni Departman Ekle
-                                                            </SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                            ) : (
-                                                <div className="flex gap-2">
-                                                    <FormControl>
-                                                        <Input
-                                                            placeholder="Yeni departman adı yazın..."
-                                                            {...field}
-                                                            autoFocus
-                                                        />
-                                                    </FormControl>
-                                                    <Button
-                                                        type="button"
-                                                        variant="ghost"
-                                                        onClick={() => {
-                                                            setDepartmentMode("select")
+                {showSection("job") && (
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wide border-b pb-2">Şirket & Pozisyon Bilgileri</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <FormField
+                                control={form.control}
+                                name="sgkBranchId"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Şube / Firma (SGK)</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Şube seçin" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {branches
+                                                    .filter(b => b.sgk_number && b.sgk_number.length > 0)
+                                                    .map(branch => (
+                                                        <SelectItem key={branch.id} value={branch.id.toString()}>
+                                                            {branch.name}
+                                                        </SelectItem>
+                                                    ))
+                                                }
+                                            </SelectContent>
+                                        </Select>
+                                        <FormDescription className="text-xs">Sadece SGK numarası girilmiş resmi şubeler listelenir.</FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="department"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-col">
+                                        <FormLabel>Departman</FormLabel>
+                                        {departmentMode === "select" ? (
+                                            <div className="flex gap-2">
+                                                <Select
+                                                    value={existingDepartments.includes(field.value) ? field.value : ""}
+                                                    onValueChange={(value) => {
+                                                        if (value === "__new__") {
+                                                            setDepartmentMode("input")
                                                             field.onChange("")
-                                                        }}
-                                                    >
-                                                        İptal
-                                                    </Button>
-                                                </div>
-                                            )}
-                                            <FormDescription>
-                                                {departmentMode === "select"
-                                                    ? "Listeden seçin veya 'Yeni Departman Ekle' seçeneğini kullanın."
-                                                    : "Yeni departman ismini yazın."}
-                                            </FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                {/* Cleaned up duplicate logic */}
-                                <FormField
-                                    control={form.control}
-                                    name="position"
-                                    render={({ field }) => (
-                                        <FormItem className="flex flex-col">
-                                            <FormLabel>SGK Meslek</FormLabel>
-                                            <FormControl>
-                                                <div className="relative">
-                                                    <Input
-                                                        placeholder="Örn: Uzman"
-                                                        {...field}
-                                                        list={positionListId}
-                                                        autoComplete="off"
-                                                    />
-                                                    <datalist id={positionListId}>
-                                                        {existingPositions.map((pos, index) => (
-                                                            <option key={index} value={pos} />
+                                                        } else {
+                                                            field.onChange(value)
+                                                        }
+                                                    }}
+                                                >
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Departman seçin..." />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        {existingDepartments.map((dept) => (
+                                                            <SelectItem key={dept} value={dept}>
+                                                                {dept}
+                                                            </SelectItem>
                                                         ))}
-                                                    </datalist>
-                                                </div>
-                                            </FormControl>
-                                            <FormDescription>
-                                                Listeden seçebilir veya yeni yazabilirsiniz.
-                                            </FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="leaveCarryover"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Önceki Kullanılan İzin (Gün)</FormLabel>
-                                            <FormControl>
-                                                <Input type="number" placeholder="0" {...field} />
-                                            </FormControl>
-                                            <FormDescription>Sistemden önce kullanılan toplam izin günü (hakedilenden düşülür)</FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+                                                        <SelectItem value="__new__" className="font-semibold text-primary">
+                                                            + Yeni Departman Ekle
+                                                        </SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        ) : (
+                                            <div className="flex gap-2">
+                                                <FormControl>
+                                                    <Input
+                                                        placeholder="Yeni departman adı yazın..."
+                                                        {...field}
+                                                        autoFocus
+                                                    />
+                                                </FormControl>
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    onClick={() => {
+                                                        setDepartmentMode("select")
+                                                        field.onChange("")
+                                                    }}
+                                                >
+                                                    İptal
+                                                </Button>
+                                            </div>
+                                        )}
+                                        <FormDescription>
+                                            {departmentMode === "select"
+                                                ? "Listeden seçin veya 'Yeni Departman Ekle' seçeneğini kullanın."
+                                                : "Yeni departman ismini yazın."}
+                                        </FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="position"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-col">
+                                        <FormLabel>SGK Meslek</FormLabel>
+                                        <FormControl>
+                                            <div className="relative">
+                                                <Input
+                                                    placeholder="Örn: Uzman"
+                                                    {...field}
+                                                    list={positionListId}
+                                                    autoComplete="off"
+                                                />
+                                                <datalist id={positionListId}>
+                                                    {existingPositions.map((pos, index) => (
+                                                        <option key={index} value={pos} />
+                                                    ))}
+                                                </datalist>
+                                            </div>
+                                        </FormControl>
+                                        <FormDescription>
+                                            Listeden seçebilir veya yeni yazabilirsiniz.
+                                        </FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                             <FormField
                                 control={form.control}
                                 name="startDate"
@@ -496,117 +503,99 @@ export function EmployeeForm({
                                                 <SelectItem value="none">BES Yok / Çıkış</SelectItem>
                                             </SelectContent>
                                         </Select>
-                                        <FormDescription className="text-xs">18-45 yaş arası için otomatik seçilir. BES'ten çıkış için 'BES Yok / Çıkış' seçin.</FormDescription>
+                                        <FormDescription className="text-xs">18-45 yaş arası için otomatik seçilir.</FormDescription>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
                             <FormField
                                 control={form.control}
-                                name="iban"
+                                name="leaveCarryover"
                                 render={({ field }) => (
-                                    <FormItem className="md:col-span-3">
-                                        <FormLabel>IBAN</FormLabel>
+                                    <FormItem>
+                                        <FormLabel>Önceki Kullanılan İzin (Gün)</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="TR..." {...field} />
+                                            <Input type="number" placeholder="0" {...field} />
                                         </FormControl>
+                                        <FormDescription>Sistemden önce kullanılan toplam izin günü</FormDescription>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
-
+                            <FormField
+                                control={form.control}
+                                name="employmentStatus"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>İstihdam Türü</FormLabel>
+                                        <Select onValueChange={field.onChange} value={field.value || "Daimi"}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Seçiniz" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                {[
+                                                    "Daimi", "Mevsimlik", "Geçici", "Full-Time", "Part-Time",
+                                                    "Eski Hükümlü", "Hükümlü", "Özürlü", "Ödünç Çalışan",
+                                                    "Terör Mağduru", "Stajyer - Çırak", "Taşı İşverene Ait Çalışan",
+                                                    "Kendi Adıma ve Hesabıma", "Diğer",
+                                                ].map(opt => (
+                                                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                         </div>
+                    </div>
+                )}
 
-                        {/* İstihdam Durumu */}
-                        <div className="border-t pt-4">
-                            <h3 className="text-lg font-medium mb-4">İstihdam Durumu</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <FormField
-                                    control={form.control}
-                                    name="employmentStatus"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>İstihdam Türü</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value || "Daimi"}>
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Seçiniz" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    {[
-                                                        "Daimi",
-                                                        "Mevsimlik",
-                                                        "Geçici",
-                                                        "Full-Time",
-                                                        "Part-Time",
-                                                        "Eski Hükümlü",
-                                                        "Hükümlü",
-                                                        "Özürlü",
-                                                        "Ödünç Çalışan",
-                                                        "Terör Mağduru",
-                                                        "Stajyer - Çırak",
-                                                        "Taşı İşverene Ait Çalışan",
-                                                        "Kendi Adıma ve Hesabıma",
-                                                        "Diğer",
-                                                    ].map(opt => (
-                                                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
+                {showSection("documents") && (
+                    <div className="space-y-4">
+                        <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wide border-b pb-2">Sürücü Belgeleri</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <Label htmlFor="ehliyetClass">Ehliyet Sınıfı</Label>
+                                <Select
+                                    value={form.watch("ehliyetClass") || ""}
+                                    onValueChange={(val) => form.setValue("ehliyetClass", val)}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Sınıf seçin" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {["B", "C", "D", "E", "B+E", "C+E", "D+E"].map(c => (
+                                            <SelectItem key={c} value={c}>{c}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div>
+                                <Label htmlFor="ehliyetExpiry">Ehliyet Bitiş Tarihi</Label>
+                                <Input type="date" {...form.register("ehliyetExpiry")} />
+                            </div>
+                            <div>
+                                <Label htmlFor="srcExpiry">SRC Bitiş Tarihi</Label>
+                                <Input type="date" {...form.register("srcExpiry")} />
+                            </div>
+                            <div>
+                                <Label htmlFor="psikoteknikExpiry">Psikoteknik Bitiş Tarihi</Label>
+                                <Input type="date" {...form.register("psikoteknikExpiry")} />
                             </div>
                         </div>
+                    </div>
+                )}
 
-                        {/* Ehliyet / SRC / Psikoteknik */}
-                        <div className="col-span-2">
-                          <h3 className="text-sm font-semibold text-gray-700 border-b pb-2 mb-3 mt-2">
-                            Sürücü Belgeleri
-                          </h3>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 col-span-2">
-                          <div>
-                            <Label htmlFor="ehliyetClass">Ehliyet Sınıfı</Label>
-                            <Select
-                              value={form.watch("ehliyetClass") || ""}
-                              onValueChange={(val) => form.setValue("ehliyetClass", val)}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Sınıf seçin" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {["B", "C", "D", "E", "B+E", "C+E", "D+E"].map(c => (
-                                  <SelectItem key={c} value={c}>{c}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <Label htmlFor="ehliyetExpiry">Ehliyet Bitiş Tarihi</Label>
-                            <Input type="date" {...form.register("ehliyetExpiry")} />
-                          </div>
-                          <div>
-                            <Label htmlFor="srcExpiry">SRC Bitiş Tarihi</Label>
-                            <Input type="date" {...form.register("srcExpiry")} />
-                          </div>
-                          <div>
-                            <Label htmlFor="psikoteknikExpiry">Psikoteknik Bitiş Tarihi</Label>
-                            <Input type="date" {...form.register("psikoteknikExpiry")} />
-                          </div>
-                        </div>
-
-                        <div className="flex justify-end space-x-2 pt-6">
-                            <Button variant="outline" type="button" onClick={() => router.back()}>İptal</Button>
-                            <Button type="submit" disabled={loading}>
-                                {loading ? "Kaydediliyor..." : "Kaydet"}
-                            </Button>
-                        </div>
-                    </form>
-                </Form>
-            </CardContent>
-        </Card >
+                <div className="flex justify-end space-x-2 pt-4 border-t">
+                    <Button variant="outline" type="button" onClick={() => router.back()}>İptal</Button>
+                    <Button type="submit" disabled={loading}>
+                        {loading ? "Kaydediliyor..." : "Kaydet"}
+                    </Button>
+                </div>
+            </form>
+        </Form>
     )
 }

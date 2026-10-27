@@ -1,4 +1,3 @@
-"use strict";
 "use client"
 
 import * as React from "react"
@@ -14,7 +13,9 @@ import {
 } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent } from "@/components/ui/card"
+import { Plus, Search, Filter, X, Users, CalendarX2, FileWarning, UserRoundCheck, Download } from "lucide-react"
 import Link from "next/link"
 
 interface EmployeeListProps {
@@ -27,20 +28,33 @@ const DebouncedSearchInput = React.memo(({ value, onChange }: { value: string, o
     const [localValue, setLocalValue] = React.useState(value)
 
     return (
-        <Input
-            placeholder="Personel, TC, Departman veya Pozisyon ara..."
-            className="max-w-sm bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-500 dark:placeholder:text-zinc-400"
-            value={localValue}
-            onChange={(e) => {
-                const val = e.target.value
-                setLocalValue(val) // Local state update is fast, doesn't trigger table
-
-                if (timeoutRef.current) clearTimeout(timeoutRef.current)
-                timeoutRef.current = setTimeout(() => {
-                    onChange(val) // Triggers parent heavy state update after 300ms
-                }, 300)
-            }}
-        />
+        <div className="relative w-full sm:max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+                placeholder="Ara..."
+                className="pl-9 bg-white border-slate-200 text-slate-800 placeholder:text-slate-400 focus-visible:ring-primary/30"
+                value={localValue}
+                onChange={(e) => {
+                    const val = e.target.value
+                    setLocalValue(val)
+                    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+                    timeoutRef.current = setTimeout(() => {
+                        onChange(val)
+                    }, 300)
+                }}
+            />
+            {localValue && (
+                <button
+                    onClick={() => {
+                        setLocalValue("")
+                        onChange("")
+                    }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                    <X className="h-4 w-4" />
+                </button>
+            )}
+        </div>
     )
 })
 DebouncedSearchInput.displayName = "DebouncedSearchInput"
@@ -48,20 +62,31 @@ DebouncedSearchInput.displayName = "DebouncedSearchInput"
 export function EmployeeList({ data, branches }: EmployeeListProps) {
     const [selectedBranch, setSelectedBranch] = React.useState<string>("all")
     const [selectedDepartment, setSelectedDepartment] = React.useState<string>("all")
-    const [showTerminated, setShowTerminated] = React.useState(false)
+    const [selectedStatus, setSelectedStatus] = React.useState<string>("active")
     const [searchTerm, setSearchTerm] = React.useState("")
 
-    // Extract unique departments for filter
     const departments = Array.from(new Set(data.map(e => e.department).filter(Boolean)))
+
+    const stats = React.useMemo(() => {
+        const total = data.length
+        const active = data.filter(e => e.status === "active").length
+        const onLeave = data.filter(e => e.status === "on_leave").length
+        const terminated = data.filter(e => e.status === "passive" || e.status === "inactive").length
+        const missingDocs = data.filter(e => {
+            return e.status === "active" && (!e.ehliyetExpiry || !e.srcExpiry || !e.psikoteknikExpiry)
+        }).length
+        return { total, active, onLeave, terminated, missingDocs }
+    }, [data])
 
     const filteredData = React.useMemo(() => {
         let result = data
 
-        // Toggle Terminated Filter
-        if (showTerminated) {
+        if (selectedStatus === "active") {
+            result = result.filter(e => e.status === "active")
+        } else if (selectedStatus === "on_leave") {
+            result = result.filter(e => e.status === "on_leave")
+        } else if (selectedStatus === "terminated") {
             result = result.filter(e => e.status === "passive" || e.status === "inactive")
-        } else {
-            result = result.filter(e => e.status !== "passive" && e.status !== "inactive")
         }
 
         if (selectedBranch && selectedBranch !== "all") {
@@ -72,7 +97,6 @@ export function EmployeeList({ data, branches }: EmployeeListProps) {
             result = result.filter(e => e.department === selectedDepartment)
         }
 
-        // Filter by Search Query (Name, TC, etc.) for Export consistency
         if (searchTerm) {
             const nQuery = searchTerm.toLocaleLowerCase('tr-TR').trim().replace(/\s+/g, ' ')
             result = result.filter(e => {
@@ -97,7 +121,7 @@ export function EmployeeList({ data, branches }: EmployeeListProps) {
         }
 
         return result
-    }, [data, selectedBranch, selectedDepartment, showTerminated, searchTerm])
+    }, [data, selectedBranch, selectedDepartment, selectedStatus, searchTerm])
 
     const [filteredCount, setFilteredCount] = React.useState(0)
 
@@ -105,14 +129,13 @@ export function EmployeeList({ data, branches }: EmployeeListProps) {
         setFilteredCount(filteredData.length)
     }, [filteredData])
 
-    // Map DB data to columns format
     const formattedData: Employee[] = filteredData.map(e => ({
         id: e.id.toString(),
         name: `${e.firstName} ${e.lastName}`,
         email: e.email || "",
         department: e.department || "-",
         position: e.position || "-",
-        status: e.status as "active" | "inactive" | "on_leave",
+        status: e.status as "active" | "inactive" | "on_leave" | "passive",
         gender: e.gender as "male" | "female",
         birthDate: e.birthDate || undefined,
         startDate: e.startDate || undefined,
@@ -149,76 +172,134 @@ export function EmployeeList({ data, branches }: EmployeeListProps) {
         })
     }
 
+    const statusTabs = [
+        { key: "all", label: "Tüm Personel", count: stats.total, active: selectedStatus === "all" },
+        { key: "active", label: "Aktif", count: stats.active, active: selectedStatus === "active" },
+        { key: "on_leave", label: "İzinli", count: stats.onLeave, active: selectedStatus === "on_leave" },
+        { key: "terminated", label: "İşten Ayrılan", count: stats.terminated, active: selectedStatus === "terminated" },
+    ]
+
+    const statCards = [
+        { icon: Users, label: "Aktif Çalışan", value: stats.active, color: "text-blue-600", bg: "bg-blue-50" },
+        { icon: CalendarX2, label: "İzinli", value: stats.onLeave, color: "text-amber-600", bg: "bg-amber-50" },
+        { icon: FileWarning, label: "Evrak Eksik", value: stats.missingDocs, color: "text-rose-600", bg: "bg-rose-50" },
+        { icon: UserRoundCheck, label: "İşten Ayrılan", value: stats.terminated, color: "text-slate-600", bg: "bg-slate-100" },
+    ]
+
     return (
-        <div className="flex flex-col">
-            {/* Fixed top section - filters */}
-            <div className="flex-shrink-0 pb-3 border-b border-border/50">
-                <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-                    <div className="flex flex-wrap gap-2 w-full sm:w-auto items-center">
-                        <Select value={selectedBranch} onValueChange={setSelectedBranch}>
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Şube Seçiniz" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Tüm Şubeler</SelectItem>
-                                {branches.map(b => (
-                                    <SelectItem key={b.id} value={b.id.toString()}>{b.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+        <div className="space-y-5">
+            {/* Özet Kartları */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {statCards.map((card) => (
+                    <Card key={card.label} className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                        <CardContent className="p-5 flex items-center gap-4">
+                            <div className={`${card.bg} ${card.color} p-3 rounded-xl`}>
+                                <card.icon className="h-6 w-6" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-medium text-slate-500">{card.label}</p>
+                                <p className="text-2xl font-bold text-slate-800">{card.value}</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
 
-                        <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Departman Seçiniz" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Tüm Departmanlar</SelectItem>
-                                {departments.map(d => (
-                                    <SelectItem key={d as string} value={d as string}>{d as string}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+            {/* Üst Araç Çubuğu */}
+            <Card className="border-slate-200 shadow-sm">
+                <CardContent className="p-4 space-y-4">
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                        <div className="flex flex-wrap items-center gap-2">
+                            {statusTabs.map((tab) => (
+                                <Button
+                                    key={tab.key}
+                                    variant={tab.active ? "default" : "outline"}
+                                    size="sm"
+                                    onClick={() => setSelectedStatus(tab.key)}
+                                    className={tab.active ? "" : "border-slate-200 text-slate-600 hover:bg-slate-50"}
+                                >
+                                    {tab.label}
+                                    <Badge variant="secondary" className={`ml-2 ${tab.active ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"}`}>
+                                        {tab.count}
+                                    </Badge>
+                                </Button>
+                            ))}
+                        </div>
 
-                        <Button
-                            variant={showTerminated ? "destructive" : "outline"}
-                            onClick={() => setShowTerminated(!showTerminated)}
-                            className="gap-2"
-                        >
-                            {showTerminated ? "Aktif Personeli Göster" : "İşten Ayrılanları Göster"}
-                        </Button>
-
-                        <div className="ml-2 px-3 py-1 bg-primary/10 text-primary rounded-full text-sm font-medium border border-primary/20">
-                            {searchTerm ? `${filteredCount} / ${data.filter(e => showTerminated ? (e.status === "passive" || e.status === "inactive") : (e.status !== "passive" && e.status !== "inactive")).length} Kişi` : `${filteredCount} Kişi`}
+                        <div className="flex items-center gap-2">
+                            <Button variant="outline" size="sm" onClick={handleExport} className="border-slate-200 text-slate-700 hover:bg-slate-50">
+                                <Download className="mr-2 h-4 w-4" /> Excel İndir
+                            </Button>
+                            <ExcelImportDialog />
+                            <Link href="/employees/new">
+                                <Button size="sm">
+                                    <Plus className="mr-2 h-4 w-4" /> Yeni Personel
+                                </Button>
+                            </Link>
                         </div>
                     </div>
-                    <div className="flex gap-2">
-                        <Button variant="excel" onClick={handleExport}>
-                            📊 Excel İndir
-                        </Button>
-                        <ExcelImportDialog />
-                        <Link href="/employees/new">
-                            <Button>
-                                <Plus className="mr-2 h-4 w-4" /> Yeni Personel
-                            </Button>
-                        </Link>
-                    </div>
-                </div>
-                <div className="flex items-center pt-3">
-                    <DebouncedSearchInput
-                        value={searchTerm}
-                        onChange={(val) => setSearchTerm(val)}
-                    />
-                </div>
-            </div>
 
-            {/* Table section */}
-            <div className="mt-2">
-                <DataTable
-                    columns={columns}
-                    data={formattedData}
-                    onFilteredRowCountChange={setFilteredCount}
-                />
-            </div>
+                    <div className="flex flex-col lg:flex-row gap-3 items-start lg:items-center pt-3 border-t border-slate-100">
+                        <div className="flex items-center gap-2 text-slate-500 text-sm">
+                            <Filter className="h-4 w-4" />
+                            <span>Filtreler:</span>
+                        </div>
+
+                        <div className="flex flex-wrap gap-3 w-full lg:w-auto">
+                            <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+                                <SelectTrigger className="w-full sm:w-[180px] bg-white border-slate-200">
+                                    <SelectValue placeholder="Şube Seçiniz" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Tüm Şubeler</SelectItem>
+                                    {branches.map(b => (
+                                        <SelectItem key={b.id} value={b.id.toString()}>{b.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                                <SelectTrigger className="w-full sm:w-[180px] bg-white border-slate-200">
+                                    <SelectValue placeholder="Departman Seçiniz" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Tüm Departmanlar</SelectItem>
+                                    {departments.map(d => (
+                                        <SelectItem key={d as string} value={d as string}>{d as string}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            <DebouncedSearchInput value={searchTerm} onChange={setSearchTerm} />
+
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                    setSelectedBranch("all")
+                                    setSelectedDepartment("all")
+                                    setSelectedStatus("active")
+                                    setSearchTerm("")
+                                }}
+                                className="text-slate-500 hover:text-slate-700"
+                            >
+                                <X className="mr-2 h-4 w-4" /> Temizle
+                            </Button>
+                        </div>
+
+                        <div className="ml-auto text-sm text-slate-500">
+                            <span className="font-semibold text-slate-700">{filteredCount}</span> sonuç listeleniyor
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            {/* Tablo */}
+            <DataTable
+                columns={columns}
+                data={formattedData}
+                onFilteredRowCountChange={setFilteredCount}
+            />
         </div>
     )
 }
