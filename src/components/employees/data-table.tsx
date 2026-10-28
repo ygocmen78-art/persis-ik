@@ -41,6 +41,7 @@ interface DataTableProps<TData, TValue> {
     onFilteredRowCountChange?: (count: number) => void
     searchQuery?: string
     onSearchChange?: (value: string) => void
+    defaultPageSize?: number
 }
 
 export function DataTable<TData, TValue>({
@@ -49,6 +50,7 @@ export function DataTable<TData, TValue>({
     onFilteredRowCountChange,
     searchQuery,
     onSearchChange,
+    defaultPageSize = 15,
 }: DataTableProps<TData, TValue>) {
     const isControlled = searchQuery !== undefined && onSearchChange !== undefined
     const [localGlobalFilter, setLocalGlobalFilter] = React.useState("")
@@ -58,7 +60,7 @@ export function DataTable<TData, TValue>({
 
     const [rowSelection, setRowSelection] = React.useState({})
     const [showBulkDeleteDialog, setShowBulkDeleteDialog] = React.useState(false)
-    const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: 10 })
+    const [pagination, setPagination] = React.useState({ pageIndex: 0, pageSize: defaultPageSize })
 
     const table = useReactTable({
         data,
@@ -100,8 +102,8 @@ export function DataTable<TData, TValue>({
     }
 
     return (
-        <div className="space-y-3">
-            <div className="flex items-center justify-between py-2 min-h-[44px]">
+        <div className="space-y-2">
+            <div className="flex items-center justify-between py-1 min-h-[36px]">
                 <div className="text-sm text-slate-500">
                     {table.getFilteredSelectedRowModel().rows.length > 0 && (
                         <span className="text-primary font-medium">
@@ -114,8 +116,9 @@ export function DataTable<TData, TValue>({
                         variant="destructive"
                         size="sm"
                         onClick={() => setShowBulkDeleteDialog(true)}
+                        className="h-7 text-xs"
                     >
-                        <Trash2 className="mr-2 h-4 w-4" />
+                        <Trash2 className="mr-1.5 h-3.5 w-3.5" />
                         Seçilenleri Sil ({table.getFilteredSelectedRowModel().rows.length})
                     </Button>
                 )}
@@ -125,10 +128,10 @@ export function DataTable<TData, TValue>({
                 <Table>
                     <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
-                            <TableRow key={headerGroup.id} className="bg-slate-50 hover:bg-slate-50">
+                            <TableRow key={headerGroup.id} className="bg-slate-50 hover:bg-slate-50 border-b border-slate-200">
                                 {headerGroup.headers.map((header) => {
                                     return (
-                                        <TableHead key={header.id} className="text-slate-600 font-semibold text-xs uppercase tracking-wide">
+                                        <TableHead key={header.id} className="text-slate-600 font-semibold text-[11px] uppercase tracking-wider py-2 px-3">
                                             {header.isPlaceholder
                                                 ? null
                                                 : flexRender(
@@ -148,17 +151,17 @@ export function DataTable<TData, TValue>({
                                     key={row.id}
                                     data-state={row.getIsSelected() && "selected"}
                                     onClick={(e) => {
-                                        if ((e.target as HTMLElement).closest('button')) return;
+                                        if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('a')) return;
                                         row.toggleSelected(!row.getIsSelected())
                                     }}
                                     onDoubleClick={(e) => {
-                                        if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('[role="checkbox"]')) return;
+                                        if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('[role="checkbox"]') || (e.target as HTMLElement).closest('a')) return;
                                         window.location.href = `/employees/${(row.original as any).id}`
                                     }}
-                                    className="cursor-pointer hover:bg-blue-50/60 text-slate-700 transition-colors"
+                                    className="cursor-pointer hover:bg-blue-50/60 text-slate-700 transition-colors border-b border-slate-100 last:border-0"
                                 >
                                     {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id} className="py-3">
+                                        <TableCell key={cell.id} className="py-1.5 px-3">
                                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                         </TableCell>
                                     ))}
@@ -166,7 +169,7 @@ export function DataTable<TData, TValue>({
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={columns.length} className="h-32 text-center text-slate-400">
+                                <TableCell colSpan={columns.length} className="h-28 text-center text-slate-400">
                                     Sonuç bulunamadı.
                                 </TableCell>
                             </TableRow>
@@ -175,7 +178,7 @@ export function DataTable<TData, TValue>({
                 </Table>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-2">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 py-1">
                 <div className="text-sm text-slate-500">
                     Toplam <span className="font-semibold text-slate-700">{table.getFilteredRowModel().rows.length}</span> kayıt
                     {table.getPageCount() > 1 && (
@@ -183,19 +186,19 @@ export function DataTable<TData, TValue>({
                     )}
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                        <span>Sayfa başı</span>
+                <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 text-sm text-slate-600">
+                        <span className="text-xs">Göster:</span>
                         <Select
                             value={table.getState().pagination.pageSize.toString()}
                             onValueChange={(value) => table.setPageSize(Number(value))}
                         >
-                            <SelectTrigger className="h-8 w-[70px] bg-white border-slate-200">
+                            <SelectTrigger className="h-7 w-[64px] bg-white border-slate-200 text-xs">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                {[10, 20, 50, 100].map((size) => (
-                                    <SelectItem key={size} value={size.toString()}>
+                                {[10, 15, 25, 50, 100].map((size) => (
+                                    <SelectItem key={size} value={size.toString()} className="text-xs">
                                         {size}
                                     </SelectItem>
                                 ))}
@@ -206,19 +209,19 @@ export function DataTable<TData, TValue>({
                     <div className="flex items-center gap-1">
                         <Button
                             variant="outline"
-                            size="icon-sm"
+                            size="icon-xs"
                             onClick={() => table.previousPage()}
                             disabled={!table.getCanPreviousPage()}
-                            className="border-slate-200"
+                            className="border-slate-200 h-7 w-7"
                         >
                             <ChevronLeft className="h-4 w-4" />
                         </Button>
                         <Button
                             variant="outline"
-                            size="icon-sm"
+                            size="icon-xs"
                             onClick={() => table.nextPage()}
                             disabled={!table.getCanNextPage()}
-                            className="border-slate-200"
+                            className="border-slate-200 h-7 w-7"
                         >
                             <ChevronRight className="h-4 w-4" />
                         </Button>

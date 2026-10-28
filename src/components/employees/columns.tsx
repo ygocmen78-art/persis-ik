@@ -79,7 +79,7 @@ function StatusBadge({ status }: { status: string }) {
         active: "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100",
         on_leave: "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100",
         inactive: "bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200",
-        passive: "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100",
+        passive: "bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100",
     }
     const labels: Record<string, string> = {
         active: "Aktif",
@@ -88,7 +88,7 @@ function StatusBadge({ status }: { status: string }) {
         passive: "Çıkış",
     }
     return (
-        <Badge variant="outline" className={variants[status] || variants.inactive}>
+        <Badge variant="outline" className={`${variants[status] || variants.inactive} text-xs px-2 py-0.5 font-medium`}>
             {labels[status] || status}
         </Badge>
     )
@@ -125,18 +125,18 @@ export const columns: ColumnDef<Employee>[] = [
         cell: ({ row }) => {
             const employee = row.original
             return (
-                <div className="flex items-center gap-3">
-                    <Avatar className="h-9 w-9 border border-slate-200">
+                <div className="flex items-center gap-2.5">
+                    <Avatar className="h-8 w-8 border border-slate-200">
                         <AvatarImage src={employee.avatarUrl} alt={employee.name} />
-                        <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                        <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
                             {getInitials(employee.name)}
                         </AvatarFallback>
                     </Avatar>
-                    <div className="flex flex-col">
-                        <Link href={`/employees/${employee.id}`} className="font-semibold text-slate-800 hover:text-primary transition-colors">
+                    <div className="flex flex-col min-w-0">
+                        <Link href={`/employees/${employee.id}`} className="font-semibold text-sm text-slate-800 hover:text-primary transition-colors truncate">
                             {employee.name}
                         </Link>
-                        <span className="text-xs text-slate-500">{employee.position || "-"}</span>
+                        <span className="text-[11px] text-slate-500 truncate">{employee.position || "-"}</span>
                     </div>
                 </div>
             )
@@ -223,21 +223,21 @@ export const columns: ColumnDef<Employee>[] = [
 
             return (
                 <>
-                    <div className="flex items-center justify-end gap-1">
+                    <div className="flex items-center justify-end gap-0.5">
                         <Link href={`/employees/${employee.id}`}>
-                            <Button variant="ghost" size="icon-xs" className="text-slate-500 hover:text-primary hover:bg-primary/5">
+                            <Button variant="ghost" size="icon-xs" className="text-slate-400 hover:text-primary hover:bg-primary/5 h-7 w-7">
                                 <Eye className="h-4 w-4" />
                             </Button>
                         </Link>
                         <Link href={`/employees/${employee.id}/edit`}>
-                            <Button variant="ghost" size="icon-xs" className="text-slate-500 hover:text-primary hover:bg-primary/5">
+                            <Button variant="ghost" size="icon-xs" className="text-slate-400 hover:text-primary hover:bg-primary/5 h-7 w-7">
                                 <Pencil className="h-4 w-4" />
                             </Button>
                         </Link>
 
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon-xs" className="text-slate-500 hover:text-slate-700 hover:bg-slate-100">
+                                <Button variant="ghost" size="icon-xs" className="text-slate-400 hover:text-slate-700 hover:bg-slate-100 h-7 w-7">
                                     <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                             </DropdownMenuTrigger>
