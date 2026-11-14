@@ -195,7 +195,7 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
                                 <CardTitle className="text-base font-semibold text-slate-800">Kişisel Bilgiler</CardTitle>
                                 <CardDescription>Personelin temel kimlik bilgileri</CardDescription>
                             </CardHeader>
-                            <CardContent className="space-y-3">
+                            <CardContent className="space-y-1">
                                 <DetailRow label="Ad Soyad" value={fullName} />
                                 <DetailRow label="TC Kimlik No" value={employee.tcNumber || "-"} />
                                 <DetailRow label="Doğum Tarihi" value={employee.birthDate ? format(new Date(employee.birthDate), "dd.MM.yyyy") : "-"} />
@@ -211,7 +211,7 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
                                 <CardTitle className="text-base font-semibold text-slate-800">İş Bilgileri</CardTitle>
                                 <CardDescription>Şube, departman ve maaş bilgileri</CardDescription>
                             </CardHeader>
-                            <CardContent className="space-y-3">
+                            <CardContent className="space-y-1">
                                 <DetailRow label="Şube / Firma" value={employee.sgkBranchName || employee.branchName || "-"} />
                                 <DetailRow label="Departman" value={employee.department || "-"} />
                                 <DetailRow label="Pozisyon" value={employee.position || "-"} />
@@ -227,7 +227,7 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
                                 <CardTitle className="text-base font-semibold text-slate-800">İzin Durumu</CardTitle>
                                 <CardDescription>Güncel yıllık izin bakiyesi</CardDescription>
                             </CardHeader>
-                            <CardContent className="space-y-3">
+                            <CardContent className="space-y-1">
                                 <DetailRow label="Yıllık İzin Hakkı" value={`${availableAnnualLeave + (employeeLeaves.filter((l: any) => l.type === "annual" && l.status === "approved").reduce((acc: number, l: any) => acc + (l.daysCount || 0), 0))} gün`} />
                                 <DetailRow label="Kullanılan" value={`${employeeLeaves.filter((l: any) => l.type === "annual" && l.status === "approved").reduce((acc: number, l: any) => acc + (l.daysCount || 0), 0)} gün`} />
                                 <DetailRow label="Kalan" value={`${availableAnnualLeave} gün`} valueClassName={availableAnnualLeave < 3 ? "text-rose-600 font-semibold" : "text-emerald-600 font-semibold"} />
@@ -239,7 +239,7 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
                                 <CardTitle className="text-base font-semibold text-slate-800">Belgeler</CardTitle>
                                 <CardDescription>Sürücü ve iş sağlığı belgeleri</CardDescription>
                             </CardHeader>
-                            <CardContent className="space-y-3">
+                            <CardContent className="space-y-1">
                                 <DetailRow label="Ehliyet Sınıfı" value={employee.ehliyetClass || "-"} />
                                 <DetailRow label="Ehliyet Bitiş" value={employee.ehliyetExpiry ? format(new Date(employee.ehliyetExpiry), "dd.MM.yyyy") : "-"} />
                                 <DetailRow label="SRC Bitiş" value={employee.srcExpiry ? format(new Date(employee.srcExpiry), "dd.MM.yyyy") : "-"} />
@@ -416,7 +416,7 @@ function QuickInfo({ icon: Icon, label, value }: { icon: any, label: string, val
 
 function DetailRow({ label, value, valueClassName }: { label: string, value: string, valueClassName?: string }) {
     return (
-        <div className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0">
+        <div className="flex justify-between items-center py-1 border-b border-slate-100 last:border-0">
             <span className="text-sm text-slate-500">{label}</span>
             <span className={`text-sm font-medium text-slate-800 ${valueClassName || ""}`}>{value}</span>
         </div>
