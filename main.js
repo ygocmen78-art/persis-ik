@@ -111,6 +111,7 @@ function createWindow() {
     mainWindow = new BrowserWindow({
         width: winWidth,
         height: winHeight,
+        backgroundColor: '#f8fafc',
         center: true,
         icon: iconPath,
         webPreferences: {

@@ -221,14 +221,14 @@ export function EmployeeList({ data, branches }: EmployeeListProps) {
             </div>
 
             {/* Filtre Paneli */}
-            <Card className="border-slate-200 shadow-sm bg-gradient-to-b from-blue-50/50 to-white">
-                <CardContent className="p-3 space-y-3">
+            <Card className="border-blue-200 shadow-sm bg-gradient-to-b from-blue-50 to-white">
+                <CardContent className="p-2.5 space-y-2.5">
                     {/* Arama çubuğu */}
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-600" />
                         <Input
                             placeholder="Personel, TC, telefon, pozisyon veya departman ara..."
-                            className="pl-9 pr-9 bg-white border-slate-200 text-slate-800 placeholder:text-slate-400 focus-visible:ring-primary/30 h-10"
+                            className="pl-10 pr-9 bg-white border-2 border-blue-200 text-slate-900 placeholder:text-slate-500 shadow-sm focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-200 h-9 text-sm"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -266,9 +266,9 @@ export function EmployeeList({ data, branches }: EmployeeListProps) {
                                 İşe Giriş Tarihi
                             </label>
                             <div className="flex items-center gap-2">
-                                <Input type="date" value={startDateFrom} onChange={(e) => setStartDateFrom(e.target.value)} className="h-9 text-xs bg-white border-slate-200" />
+                                <Input type="date" value={startDateFrom} onChange={(e) => setStartDateFrom(e.target.value)} className="h-8 text-xs bg-white border-slate-200" />
                                 <span className="text-slate-400 text-xs">-</span>
-                                <Input type="date" value={startDateTo} onChange={(e) => setStartDateTo(e.target.value)} className="h-9 text-xs bg-white border-slate-200" />
+                                <Input type="date" value={startDateTo} onChange={(e) => setStartDateTo(e.target.value)} className="h-8 text-xs bg-white border-slate-200" />
                             </div>
                         </div>
                     </div>
@@ -315,7 +315,7 @@ function FilterBox({ icon: Icon, label, value, onChange, children }: { icon: any
                 {label}
             </label>
             <Select value={value} onValueChange={onChange}>
-                <SelectTrigger className="h-9 bg-white border-slate-200 text-sm text-slate-700 focus:ring-primary/20">
+                <SelectTrigger className="h-8 bg-white border-slate-200 text-sm text-slate-700 focus:ring-primary/20">
                     <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

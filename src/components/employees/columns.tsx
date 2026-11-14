@@ -1,7 +1,7 @@
 "use client"
 
 import { ColumnDef } from "@tanstack/react-table"
-import { MoreHorizontal, Trash, UserMinus, UserCheck, Eye, Pencil, FileText } from "lucide-react"
+import { MoreHorizontal, Trash, UserMinus, UserCheck, Eye, Pencil, Truck, HardHat, Wrench, FlaskConical, Fuel, BriefcaseBusiness, UserRound } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
     DropdownMenu,
@@ -74,6 +74,17 @@ function getInitials(name: string) {
         .slice(0, 2)
 }
 
+function getOccupationIcon(position: string) {
+    const value = position.toLocaleLowerCase("tr-TR")
+    if (/transmikser|tır|tir|kamyon|şoför|sofor|operatör|operator|damper|pompa/.test(value)) return Truck
+    if (/akaryakıt|akaryakit|pompacı|pompaci|petrol/.test(value)) return Fuel
+    if (/laboratuvar|lab\b|test|kimya/.test(value)) return FlaskConical
+    if (/usta|teknik|bakım|bakim|mekanik|tamir/.test(value)) return Wrench
+    if (/inşaat|insaat|beton|şantiye|santiye|üretim|uretim/.test(value)) return HardHat
+    if (/müdür|mudur|yönetici|yonetici|idari/.test(value)) return BriefcaseBusiness
+    return UserRound
+}
+
 function StatusBadge({ status }: { status: string }) {
     const variants: Record<string, string> = {
         active: "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100",
@@ -126,10 +137,13 @@ export const columns: ColumnDef<Employee>[] = [
             const employee = row.original
             return (
                 <div className="flex items-center gap-2.5">
-                    <Avatar className="h-8 w-8 border border-slate-200">
+                    <Avatar className="h-7 w-7 border border-slate-200">
                         <AvatarImage src={employee.avatarUrl} alt={employee.name} />
-                        <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
-                            {getInitials(employee.name)}
+                        <AvatarFallback className="bg-blue-50 text-blue-700">
+                            {(() => {
+                                const OccupationIcon = getOccupationIcon(employee.position || "")
+                                return <OccupationIcon className="h-4 w-4" aria-label={`${employee.position || "Personel"} simgesi`} />
+                            })()}
                         </AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col min-w-0">
@@ -179,11 +193,15 @@ export const columns: ColumnDef<Employee>[] = [
     },
     {
         id: "startDate",
-        header: "İşe Giriş",
+        header: "Giriş / Çıkış Tarihi",
         cell: ({ row }) => {
-            const start = row.original.startDate
-            if (!start) return <span className="text-slate-400">-</span>
-            return <span className="text-sm text-slate-600">{format(new Date(start), "dd.MM.yyyy")}</span>
+            const { startDate, terminationDate } = row.original
+            return (
+                <div className="space-y-0.5 text-[11px] leading-tight whitespace-nowrap">
+                    <div><span className="text-slate-400">Giriş</span> <span className="text-slate-600">{startDate ? format(new Date(startDate), "dd.MM.yyyy") : "-"}</span></div>
+                    {terminationDate && <div><span className="text-rose-500">Çıkış</span> <span className="font-medium text-rose-700">{format(new Date(terminationDate), "dd.MM.yyyy")}</span></div>}
+                </div>
+            )
         }
     },
     {

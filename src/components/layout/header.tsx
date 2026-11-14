@@ -1,5 +1,7 @@
 "use client"
 
+import { useEffect, useState } from "react"
+import Link from "next/link"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -10,8 +12,17 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu"
-import { Bell } from "lucide-react"
+import { Bell, AlertTriangle, XCircle, Clock } from "lucide-react"
 import { usePathname } from "next/navigation"
+import { getExpiringLicenses } from "@/actions/employees"
+
+type LicenseAlert = {
+    employeeId: number
+    employeeName: string
+    type: string
+    expiryDate: string
+    status: "expired" | "expiring"
+}
 
 const pageColors: Record<string, string> = {
     "/": "bg-blue-500",
@@ -26,51 +37,84 @@ const pageColors: Record<string, string> = {
     "/sgk": "bg-sky-500",
     "/settings": "bg-gray-500",
 }
+
 export function Header() {
     const pathname = usePathname()
+    const [alerts, setAlerts] = useState<LicenseAlert[]>([])
 
-    // Match exact path or parent route for detail pages
-    const getAccentColor = () => {
-        // Check exact match first
-        if (pathname === "/") return "bg-blue-500"
-        if (pathname === "/employees") return "bg-green-500"
-        if (pathname === "/leave") return "bg-purple-500"
-        if (pathname === "/expenses") return "bg-orange-500"
-        if (pathname === "/documents") return "bg-cyan-500"
-        if (pathname === "/garnishments") return "bg-red-500"
-        if (pathname === "/reports/execution") return "bg-pink-500"
-        if (pathname === "/reports/bes") return "bg-indigo-500"
-        if (pathname === "/isg") return "bg-yellow-500"
-        if (pathname === "/sgk") return "bg-sky-500"
-        if (pathname === "/settings") return "bg-gray-500"
+    useEffect(() => {
+        let active = true
+        getExpiringLicenses(30)
+            .then((items) => { if (active) setAlerts(items) })
+            .catch((error) => console.error("Belge uyarıları yüklenemedi:", error))
+        return () => { active = false }
+    }, [])
 
-        // Check for parent routes (e.g., /employees/123 -> /employees)
-        if (pathname.startsWith("/employees")) return "bg-green-500"
-        if (pathname.startsWith("/leave")) return "bg-purple-500"
-        if (pathname.startsWith("/expenses")) return "bg-orange-500"
-        if (pathname.startsWith("/documents")) return "bg-cyan-500"
-        if (pathname.startsWith("/garnishments")) return "bg-red-500"
-        if (pathname.startsWith("/reports/execution")) return "bg-pink-500"
-        if (pathname.startsWith("/reports/bes")) return "bg-indigo-500"
-        if (pathname.startsWith("/isg")) return "bg-yellow-500"
-        if (pathname.startsWith("/sgk")) return "bg-sky-500"
-        if (pathname.startsWith("/settings")) return "bg-gray-500"
-
-        return "bg-primary"
-    }
-
-    const accentColor = getAccentColor()
+    const accentColor = pageColors[pathname] || (
+        pathname.startsWith("/employees") ? "bg-green-500" :
+        pathname.startsWith("/leave") ? "bg-purple-500" :
+        pathname.startsWith("/expenses") ? "bg-orange-500" :
+        pathname.startsWith("/documents") ? "bg-cyan-500" :
+        pathname.startsWith("/garnishments") ? "bg-red-500" : "bg-primary"
+    )
 
     return (
         <header className="border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/50 sticky top-0 z-10">
-            {/* Colored accent bar */}
             <div className={`h-1 ${accentColor} transition-colors duration-300`} />
             <div className="flex h-16 items-center px-4 justify-between">
                 <div className="font-semibold text-lg md:hidden">K</div>
                 <div className="ml-auto flex items-center space-x-4">
-                    <Button variant="ghost" size="icon">
-                        <Bell className="h-5 w-5 text-muted-foreground" />
-                    </Button>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="relative" aria-label={`Belge uyarıları${alerts.length ? `: ${alerts.length}` : ""}`}>
+                                <Bell className="h-5 w-5 text-slate-600" />
+                                {alerts.length > 0 && (
+                                    <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-bold leading-none text-white">
+                                        {alerts.length > 99 ? "99+" : alerts.length}
+                                    </span>
+                                )}
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-[min(24rem,calc(100vw-2rem))] p-0">
+                            <DropdownMenuLabel className="flex items-center justify-between px-3 py-2.5">
+                                <span>Belge Uyarıları</span>
+                                <span className="text-xs font-normal text-slate-500">{alerts.length} uyarı</span>
+                            </DropdownMenuLabel>
+                            <DropdownMenuSeparator className="my-0" />
+                            <div className="max-h-[min(65vh,400px)] overflow-y-auto p-1">
+                                {alerts.length === 0 ? (
+                                    <p className="px-3 py-6 text-center text-sm text-slate-500">Yaklaşan veya süresi dolmuş belge yok.</p>
+                                ) : alerts.map((alert, index) => (
+                                    <DropdownMenuItem
+                                        key={`${alert.employeeId}-${alert.type}-${alert.expiryDate}-${index}`}
+                                        onSelect={() => { window.location.href = `/employees/${alert.employeeId}` }}
+                                        className="items-start gap-2.5 whitespace-normal px-3 py-2.5 cursor-pointer"
+                                    >
+                                        {alert.status === "expired"
+                                            ? <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" />
+                                            : <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />}
+                                        <span className="min-w-0 flex-1">
+                                            <span className="block truncate text-sm font-medium text-slate-800">{alert.employeeName} · {alert.type}</span>
+                                            <span className="mt-0.5 flex items-center gap-1 text-xs text-slate-500">
+                                                <Clock className="h-3 w-3" />
+                                                {alert.status === "expired" ? "Süresi doldu" : "Süresi yaklaşıyor"} · {new Date(alert.expiryDate).toLocaleDateString("tr-TR")}
+                                            </span>
+                                        </span>
+                                    </DropdownMenuItem>
+                                ))}
+                            </div>
+                            {alerts.length > 0 && (
+                                <>
+                                    <DropdownMenuSeparator className="my-0" />
+                                    <Link href="/employees">
+                                        <DropdownMenuItem className="justify-center text-sm font-medium text-primary cursor-pointer">
+                                            Personel listesine git
+                                        </DropdownMenuItem>
+                                    </Link>
+                                </>
+                            )}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="relative h-8 w-8 rounded-full">
@@ -84,22 +128,11 @@ export function Header() {
                             <DropdownMenuLabel className="font-normal">
                                 <div className="flex flex-col space-y-1">
                                     <p className="text-sm font-medium leading-none">Admin User</p>
-                                    <p className="text-xs leading-none text-muted-foreground">
-                                        admin@example.com
-                                    </p>
+                                    <p className="text-xs leading-none text-muted-foreground">admin@example.com</p>
                                 </div>
                             </DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem>
-                                Profil
-                            </DropdownMenuItem>
-                            <DropdownMenuItem>
-                                Ayarlar
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem>
-                                Çıkış Yap
-                            </DropdownMenuItem>
+                            <DropdownMenuItem>Ayarlar</DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>

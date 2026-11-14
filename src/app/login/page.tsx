@@ -50,12 +50,12 @@ export default function LoginPage() {
     };
 
     return (
-        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f9fafb', padding: '1rem', position: 'relative', overflow: 'hidden' }}>
+        <div className="force-light" style={{ colorScheme: 'light', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', color: '#111827', padding: '1rem', position: 'relative', overflow: 'hidden' }}>
             {/* Background Decorations */}
             <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-red-500/10 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-rose-500/10 rounded-full blur-3xl pointer-events-none" />
 
-            <Card className="w-full max-w-md shadow-2xl border-zinc-200/50 dark:border-zinc-800/50 backdrop-blur-sm bg-white/90 dark:bg-zinc-900/90 relative z-10 bg-white text-gray-900">
+            <Card className="w-full max-w-md shadow-2xl border-slate-200 bg-white relative z-10 text-slate-900">
                 <CardHeader className="space-y-3 pb-6 pt-8">
                     <div className="flex justify-center mb-2">
                         <div style={{ width: '80px', height: '80px', flexShrink: 0 }}>
@@ -76,7 +76,7 @@ export default function LoginPage() {
                                 <Input
                                     id="username"
                                     placeholder="admin"
-                                    className="pl-9 bg-zinc-50/50 dark:bg-zinc-950/50 text-gray-900 bg-white placeholder:text-gray-400"
+                                    className="pl-9 border-slate-300 bg-white text-slate-900 placeholder:text-slate-500 focus-visible:ring-blue-500" style={{ color: '#111827', backgroundColor: '#ffffff', colorScheme: 'light' }}
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
                                     required
@@ -92,7 +92,7 @@ export default function LoginPage() {
                                     id="password"
                                     type="password"
                                     placeholder="••••••"
-                                    className="pl-9 bg-zinc-50/50 dark:bg-zinc-950/50 text-gray-900 bg-white placeholder:text-gray-400"
+                                    className="pl-9 border-slate-300 bg-white text-slate-900 placeholder:text-slate-500 focus-visible:ring-blue-500" style={{ color: '#111827', backgroundColor: '#ffffff', colorScheme: 'light' }}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required
