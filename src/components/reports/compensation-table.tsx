@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Search, Download, Landmark, AlertTriangle, Calendar, Banknote } from "lucide-react"
+import { getSeveranceCeiling, getSeveranceCeilingPeriodLabel } from "@/lib/severance"
 
 interface CompensationRow {
     id: number
@@ -396,7 +397,7 @@ export function CompensationReportTable({ data, totalKidemNet, totalIhbarNet, to
 
             <p className="text-xs text-muted-foreground text-right">
                 * Hesaplamalar bilgi amaçlıdır. Net tutarlar vergi dilimine ve yasal kesintilere göre değişebilir.
-                Kıdem tazminatı tavanı: 65.213,78 ₺ (2026-1 dönemi tahmini)
+                Kıdem tazminatı tavanı: {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(getSeveranceCeiling(new Date()))} ({getSeveranceCeilingPeriodLabel(new Date())} dönemi)
             </p>
         </div>
     )

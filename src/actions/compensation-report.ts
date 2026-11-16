@@ -4,10 +4,10 @@ import { db } from "@/db"
 import { employees, leaves } from "@/db/schema"
 import { eq } from "drizzle-orm"
 import { calculateAnnualLeaveEntitlement } from "@/lib/leave-utils"
+import { getSeveranceCeiling } from "@/lib/severance"
 
 // 2026 defaults
 const DEFAULT_GROSS_SALARY = 33030.00
-const DEFAULT_SEVERANCE_CEILING = 65213.78
 const STAMP_TAX_RATE = 0.00759
 const INCOME_TAX_RATE = 0.15
 
@@ -51,8 +51,10 @@ function calculateTenure(startDate: Date, endDate: Date) {
     return { years, months, days }
 }
 
-export async function getCompensationReport(severanceCeiling: number = DEFAULT_SEVERANCE_CEILING): Promise<CompensationRow[]> {
+export async function getCompensationReport(): Promise<CompensationRow[]> {
     const today = new Date()
+    // Kıdem tazminatı tavanı, fesih (rapor) tarihindeki dönemin tutarıdır
+    const severanceCeiling = getSeveranceCeiling(today)
 
     // Get all active employees
     const allEmployees = await db.select({

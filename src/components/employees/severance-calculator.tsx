@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { format } from "date-fns"
 import { tr } from "date-fns/locale"
+import { getSeveranceCeiling, getSeveranceCeilingPeriodLabel } from "@/lib/severance"
 
 interface SeveranceCalculatorProps {
     startDate: string | Date
@@ -17,9 +18,8 @@ interface SeveranceCalculatorProps {
 }
 
 export function SeveranceCalculator({ startDate, grossSalary, terminationDate, unusedLeaveDays }: SeveranceCalculatorProps) {
-    // Defaults: 2026 Yılı Tahmini Değerleri
-    // 2026 Asgari Ücret (Brüt): 33.030,00 TL (Kullanıcı Talebi)
-    // 2026 Kıdem Tazminatı Tavanı: ~65.000 TL (Tahmini)
+    // Varsayılanlar (2026): Brüt asgari ücret 33.030,00 TL.
+    // Kıdem tazminatı tavanı çıkış tarihindeki döneme göre otomatik uygulanır.
 
     // Eğer personelin maaşı 0 veya null gelirse asgari ücreti varsayılan yap
     const defaultSalary = grossSalary > 0 ? grossSalary : 33030.00
@@ -32,7 +32,9 @@ export function SeveranceCalculator({ startDate, grossSalary, terminationDate, u
         : new Date().toISOString().split('T')[0]
 
     const [terminationDateStr, setTerminationDateStr] = useState<string>(initialTerminationDate)
-    const [severanceCeiling, setSeveranceCeiling] = useState<number>(65213.78) // 2026 Tahmini Tavan
+    // Kıdem tazminatı tavanı çıkış tarihindeki döneme göre otomatik seçilir
+    // (1475 s. İş Kanunu m. 14; tavan Ocak/Temmuz aylarında HMB genelgesiyle güncellenir).
+    const [severanceCeiling, setSeveranceCeiling] = useState<number>(() => getSeveranceCeiling(new Date(initialTerminationDate)))
 
     // Annual Leave Input
     const [leaveDays, setLeaveDays] = useState<number>(unusedLeaveDays || 0)
@@ -165,7 +167,13 @@ export function SeveranceCalculator({ startDate, grossSalary, terminationDate, u
                         <Input
                             type="date"
                             value={terminationDateStr}
-                            onChange={(e) => setTerminationDateStr(e.target.value)}
+                            onChange={(e) => {
+                                setTerminationDateStr(e.target.value)
+                                if (e.target.value) {
+                                    // Çıkış tarihi değişince dönemin tavanını otomatik uygula
+                                    setSeveranceCeiling(getSeveranceCeiling(new Date(e.target.value)))
+                                }
+                            }}
                         />
                     </div>
                     <div className="space-y-2">
@@ -192,7 +200,9 @@ export function SeveranceCalculator({ startDate, grossSalary, terminationDate, u
                             value={severanceCeiling}
                             onChange={(e) => setSeveranceCeiling(Number(e.target.value))}
                         />
-                        <p className="text-xs text-muted-foreground">2026-1 dönemi tavan tutarı.</p>
+                        <p className="text-xs text-muted-foreground">
+                            Çıkış tarihine göre otomatik{terminationDateStr ? `: ${getSeveranceCeilingPeriodLabel(new Date(terminationDateStr))} dönemi` : ""}. Gerekirse elle değiştirilebilir.
+                        </p>
                     </div>
                 </div>
 
